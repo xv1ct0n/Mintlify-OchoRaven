@@ -2,87 +2,39 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "maple",
   "name": "CyberLearn Hub",
-  "colors": {
-    "primary": "#ef7025",
-    "light": "#eec9bc",
-    "dark": "#4fa1ab"
-  },
+  "colors": {"primary": "#ef7025", "light": "#eec9bc", "dark": "#4fa1ab"},
   "favicon": "/favicon.svg",
   "navigation": {
     "tabs": [
-      {
-        "tab": "Resources",
-        "groups": [
-          {"group": "Get Started", "pages": ["introduction", "how-to-use", "learning-paths"]},
-          {"group": "Free Training", "pages": ["free/platforms", "free/ctf-and-labs", "free/youtube-and-video", "free/books-and-reading"]},
-          {"group": "Paid Training", "pages": ["paid/platforms", "paid/bootcamps", "paid/corporate-training"]},
-          {"group": "Certifications", "pages": ["certifications/entry-level", "certifications/intermediate", "certifications/advanced"]},
-          {"group": "Hands-On Practice", "pages": ["practice/home-labs", "practice/capture-the-flag", "practice/vulnerable-machines"]}
-        ]
-      },
-      {
-        "tab": "Training",
-        "groups": [
-          {
-            "group": "Python",
-            "pages": [
-              "training/python/index",
-              "training/python/beginner",
-              "training/python/projects/ioc-normalizer",
-              "training/python/projects/auth-log-summarizer",
-              "training/python/projects/file-hash-inventory",
-              "training/python/intermediate",
-              "training/python/advanced",
-              "training/python/dco-detection-engineering"
-            ]
-          },
-          {
-            "group": "Network Forensics",
-            "pages": [
-              "training/network-forensics/index",
-              "training/network-forensics/wireshark",
-              "training/network-forensics/dns-investigation",
-              "training/network-forensics/web-traffic",
-              "training/network-forensics/beaconing-analysis",
-              "training/network-forensics/artifact-analysis",
-              "training/network-forensics/security-onion-arkime",
-              "training/network-forensics/capstone"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "By Domain",
-        "groups": [
-          {
-            "group": "Specializations",
-            "pages": [
-              "network-security",
-              "web-application-security",
-              "cloud-security",
-              "malware-analysis",
-              "penetration-testing",
-              "blue-team-and-soc"
-            ]
-          },
-          {
-            "group": "Tools & References",
-            "pages": [
-              "essential-tools",
-              "cheat-sheets",
-              "communities-and-news"
-            ]
-          }
-        ]
-      }
+      {"tab": "Resources", "groups": [
+        {"group": "Get Started", "pages": ["introduction", "how-to-use", "learning-paths"]},
+        {"group": "Free Training", "pages": ["free/platforms", "free/ctf-and-labs", "free/youtube-and-video", "free/books-and-reading"]},
+        {"group": "Paid Training", "pages": ["paid/platforms", "paid/bootcamps", "paid/corporate-training"]},
+        {"group": "Certifications", "pages": ["certifications/entry-level", "certifications/intermediate", "certifications/advanced"]},
+        {"group": "Hands-On Practice", "pages": ["practice/home-labs", "practice/capture-the-flag", "practice/vulnerable-machines"]}
+      ]},
+      {"tab": "Training", "groups": [
+        {"group": "Python", "pages": [
+          "training/python/index",
+          "training/python/beginner",
+          {"group": "Beginner Projects", "pages": ["training/python/projects/ioc-normalizer", "training/python/projects/auth-log-summarizer", "training/python/projects/file-hash-inventory"]},
+          "training/python/intermediate",
+          {"group": "Intermediate Projects", "pages": ["training/python/intermediate-projects/ioc-enrichment-client", "training/python/intermediate-projects/security-telemetry-query-client", "training/python/intermediate-projects/detection-test-harness", "training/python/intermediate-projects/analyst-case-packager"]},
+          "training/python/advanced",
+          {"group": "Advanced Projects", "pages": ["training/python/advanced-projects/concurrent-enrichment-pipeline", "training/python/advanced-projects/detection-as-code-validator", "training/python/advanced-projects/telemetry-pipeline-health-monitor", "training/python/advanced-projects/security-automation-service"]},
+          "training/python/dco-detection-engineering",
+          "training/python/resources"
+        ]},
+        {"group": "Network Forensics", "pages": ["training/network-forensics/index", "training/network-forensics/wireshark", "training/network-forensics/dns-investigation", "training/network-forensics/web-traffic", "training/network-forensics/beaconing-analysis", "training/network-forensics/artifact-analysis", "training/network-forensics/security-onion-arkime", "training/network-forensics/capstone"]},
+        {"group": "CISSP", "pages": ["training/cissp/index", "training/cissp/weekly-plan"]}
+      ]},
+      {"tab": "By Domain", "groups": [
+        {"group": "Specializations", "pages": ["domains/network-security", "domains/web-application-security", "domains/cloud-security", "domains/malware-analysis", "domains/penetration-testing", "domains/blue-team-and-soc"]},
+        {"group": "Tools & References", "pages": ["tools/essential-tools", "tools/cheat-sheets", "tools/communities-and-news"]},
+        {"group": "Systems & Security Operations", "pages": ["domains/operating-systems", "domains/siem-and-tools", "domains/ot-security", "domains/ai-ml-security"]}
+      ]}
     ]
   },
-  "navbar": {
-    "primary": {
-      "type": "button",
-      "label": "Get Started",
-      "href": "/introduction"
-    }
-  },
+  "navbar": {"primary": {"type": "button", "label": "Get Started", "href": "/introduction"}},
   "footer": {"socials": {}}
 }
