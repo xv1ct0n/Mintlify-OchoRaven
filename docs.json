@@ -111,6 +111,13 @@
             ]
           },
           {
+            "group": "Detection Engineering",
+            "icon": "crosshairs",
+            "pages": [
+              "training/detection-engineering/index"
+            ]
+          },
+          {
             "group": "CISSP",
             "pages": [
               "training/cissp/index",

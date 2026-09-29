@@ -1,0 +1,99 @@
+---
+title: "Detection Engineering"
+sidebarTitle: "Course Overview"
+description: "A senior-analyst learning path for writing, testing, tuning, and interpreting ES|QL, KQL, Suricata, and YARA detections."
+icon: "crosshairs"
+---
+
+# Detection Engineering
+
+Detection engineering turns an observable behavior into a testable analytic. A strong detection states **what data is required, what behavior is being matched, why the logic should work, what benign activity can look similar, and how the rule is validated before deployment**.
+
+<Info>
+**Audience:** Senior analysts who already understand common network and endpoint telemetry, incident investigation, and basic SIEM workflows.
+
+**Outcome:** You will be able to read, write, test, tune, and interpret detections in **ES|QL, KQL, Suricata, and YARA**, then explain how the same detection hypothesis changes across packet, indexed-event, and file-scanning engines.
+</Info>
+
+## Prerequisites
+
+You should be comfortable with:
+
+- TCP/IP, DNS, HTTP, and TLS;
+- Security Onion or another NSM platform;
+- Elasticsearch/Kibana concepts such as indices, fields, and time ranges;
+- Suricata or Snort alerts;
+- packet analysis in Wireshark or Arkime;
+- basic Linux command-line use.
+
+If you need packet-analysis reinforcement first, complete the [Network Forensics course](/training/network-forensics/index).
+
+## Detection-engineering lifecycle
+
+```text
+Behavior or hypothesis
+        ↓
+Required telemetry
+        ↓
+Observable fields / bytes
+        ↓
+Detection logic
+        ↓
+Positive test
+        ↓
+Negative / benign test
+        ↓
+Tuning and exceptions
+        ↓
+Operational metadata
+        ↓
+Deployment + monitoring
+        ↓
+Periodic review
+```
+
+## Course progression
+
+| Lesson | Detection mechanism | Primary skill |
+| --- | --- | --- |
+| 1 | Foundations | Convert a behavioral hypothesis into explicit data and test requirements. |
+| 2 | ES|QL | Build pipeline-based analytics with filtering, transformation, aggregation, and alert-oriented output. |
+| 3 | KQL | Build precise event filters and understand where filtering stops and aggregation must move elsewhere. |
+| 4 | Suricata | Write packet/application-layer signatures, select buffers, validate flow direction, and test against PCAP. |
+| 5 | YARA | Write file/content signatures, combine strings and conditions, and test against artifacts extracted from PCAP. |
+| 6 | Validation & tuning | Build positive/negative tests, document false positives, and compare engines without conflating syntax. |
+| 7 | Capstone | Translate one detection hypothesis across multiple engines and produce a deployment-ready package. |
+
+## Lab data strategy
+
+Each technology lesson is paired with a **known public training capture** from the Wireshark SampleCaptures collection or the OISF `suricata-verify` repository. The lesson tells you the exact capture filename and how it is used.
+
+<Warning>
+The documentation editor can publish MDX and navigation but does not expose a binary-asset upload path in this workflow. For that reason, the labs reference verified maintained PCAP sources rather than pretending binary files were committed to this branch.
+</Warning>
+
+## Know the engine before writing the rule
+
+| Technology | Operates on | Best fit | Important limitation |
+| --- | --- | --- | --- |
+| ES|QL | Indexed Elasticsearch data | Aggregation, transformation, statistical thresholds | Field availability depends on ingestion/mappings. |
+| KQL | Indexed Elasticsearch data in Kibana | Fast field/value filtering | KQL filters; it does not aggregate, transform, or sort. |
+| Suricata | Packets and reassembled application traffic | Network signatures and protocol-aware matching | Visibility depends on traffic, encryption, stream depth, and parser support. |
+| YARA | Files, byte buffers, or process memory | Artifact/content signatures | YARA is not a network query language; PCAP content must first become a file/buffer to scan. |
+
+<Info>
+OpenSearch does **not** provide ES|QL or Kibana KQL as drop-in equivalents. OpenSearch environments commonly use Query DSL, Dashboards Query Language, PPL, or SQL depending on version and configuration. Translate the detection hypothesis, not the literal query string.
+</Info>
+
+## Official references
+
+<CardGroup cols={2}>
+  <Card title="Elastic ES|QL" href="https://www.elastic.co/docs/reference/query-languages/esql" icon="database">Official ES|QL language reference.</Card>
+  <Card title="Elastic KQL" href="https://www.elastic.co/docs/reference/query-languages/kql" icon="filter">Official Kibana Query Language reference.</Card>
+  <Card title="Suricata Rules" href="https://docs.suricata.io/en/latest/rules/intro.html" icon="shield-halved">Official Suricata signature syntax and protocol-aware rule guidance.</Card>
+  <Card title="YARA Rules" href="https://yara.readthedocs.io/en/latest/writingrules.html" icon="file-code">Official YARA rule-writing documentation.</Card>
+</CardGroup>
+
+<Card title="Start Lesson 1: Detection Foundations" href="/training/detection-engineering/foundations" icon="diagram-project">
+Turn an investigative idea into a detection hypothesis, data contract, test plan, and tuning strategy.
+</Card>
