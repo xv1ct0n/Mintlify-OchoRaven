@@ -1,0 +1,95 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "maple",
+  "name": "CyberLearn Hub",
+  "colors": {
+    "primary": "#ef7025",
+    "light": "#eec9bc",
+    "dark": "#4fa1ab"
+  },
+  "favicon": "/favicon.svg",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Resources",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "how-to-use",
+              "learning-paths"
+            ]
+          },
+          {
+            "group": "Free Training",
+            "pages": [
+              "free/platforms",
+              "free/ctf-and-labs",
+              "free/youtube-and-video",
+              "free/books-and-reading"
+            ]
+          },
+          {
+            "group": "Paid Training",
+            "pages": [
+              "paid/platforms",
+              "paid/bootcamps",
+              "paid/corporate-training"
+            ]
+          },
+          {
+            "group": "Certifications",
+            "pages": [
+              "certifications/entry-level",
+              "certifications/intermediate",
+              "certifications/advanced"
+            ]
+          },
+          {
+            "group": "Hands-On Practice",
+            "pages": [
+              "practice/home-labs",
+              "practice/capture-the-flag",
+              "practice/vulnerable-machines"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "By Domain",
+        "groups": [
+          {
+            "group": "Specializations",
+            "pages": [
+              "domains/network-security",
+              "domains/web-application-security",
+              "domains/cloud-security",
+              "domains/malware-analysis",
+              "domains/penetration-testing",
+              "domains/blue-team-and-soc"
+            ]
+          },
+          {
+            "group": "Tools & References",
+            "pages": [
+              "tools/essential-tools",
+              "tools/cheat-sheets",
+              "tools/communities-and-news"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "navbar": {
+    "primary": {
+      "type": "button",
+      "label": "Get Started",
+      "href": "/introduction"
+    }
+  },
+  "footer": {
+    "socials": {}
+  }
+}

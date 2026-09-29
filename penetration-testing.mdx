@@ -1,0 +1,81 @@
+---
+title: "Penetration Testing: Training Resources and Career Guide"
+sidebarTitle: "Pen Testing"
+description: "Build penetration testing skills with top courses, labs, certifications, and tools — from reconnaissance and exploitation to professional reporting."
+---
+
+Penetration testing — also called ethical hacking — is a structured, authorized process of simulating real-world attacks against systems, networks, and applications to uncover vulnerabilities before malicious actors can exploit them. Unlike opportunistic attackers, a penetration tester follows a defined methodology, operates within a clearly scoped agreement, and delivers actionable findings that help organizations measurably improve their security posture. Whether you are aiming for your first security role or advancing toward an elite offensive certification, mastering the pentest lifecycle is one of the most valuable investments you can make in your cybersecurity career.
+
+<Warning>
+  **Always obtain written authorization before performing any penetration test.** Conducting security testing against systems you do not own or have explicit written permission to test is illegal under laws such as the Computer Fraud and Abuse Act (CFAA) and equivalent legislation worldwide. No exceptions.
+</Warning>
+
+## The Pentest Methodology
+
+Every professional penetration test follows a repeatable lifecycle. Understanding and internalizing these phases will make you a more effective tester and help you produce reports that clients can act on.
+
+<Steps>
+  <Step title="Reconnaissance">
+    Gather as much information about your target as possible before touching a single port. **Passive reconnaissance** keeps you off the target's radar — use OSINT sources like Shodan, Censys, LinkedIn, WHOIS records, and Google dorking. **Active reconnaissance** involves direct interaction with the target environment, such as DNS enumeration and light network probing with tools like `nmap`. The richer your recon phase, the more precise your later attacks will be.
+  </Step>
+  <Step title="Scanning & Enumeration">
+    Move from general awareness to granular detail. Port scanning with `nmap` identifies open services; vulnerability scanners like OpenVAS or Nessus flag known weaknesses; banner grabbing and service fingerprinting tell you exact software versions. Enumeration drills into specific services — SMB shares, LDAP directory objects, web directories via Gobuster — to build a complete picture of the attack surface.
+  </Step>
+  <Step title="Exploitation">
+    Use the vulnerabilities and misconfigurations you discovered to gain unauthorized access. This may involve leveraging known CVEs through frameworks like **Metasploit**, crafting custom payloads, exploiting web application flaws such as SQL injection or file upload bypasses, or abusing weak credentials discovered during enumeration. Document every exploit attempt — successful and failed — as you go.
+  </Step>
+  <Step title="Post-Exploitation">
+    Once inside, demonstrate the true business impact of a successful breach. This phase covers **privilege escalation** (local and domain), **lateral movement** across the network, **credential harvesting**, and establishing **persistence** mechanisms. Tools like BloodHound map Active Directory attack paths; LinPEAS and WinPEAS surface local privilege escalation vectors automatically. Your goal is to show how deep an attacker could realistically go.
+  </Step>
+  <Step title="Reporting">
+    The report is your primary deliverable and the measure of your professionalism. It must include an executive summary for non-technical stakeholders, a detailed technical narrative with proof-of-concept screenshots or command output, a risk-rated findings list (CVSS scores or your own severity scale), and concrete, prioritized remediation recommendations. A great report transforms raw findings into a roadmap for fixing real problems.
+  </Step>
+</Steps>
+
+## Top Training Resources
+
+The resources below give you structured learning paths, hands-on lab environments, and community support to take your penetration testing skills from beginner to career-ready.
+
+<CardGroup cols={2}>
+  <Card title="TCM Security: Practical Ethical Hacking" href="https://academy.tcm-sec.com" icon="user-secret">
+    Exceptional value, hands-on course that walks you through the complete pentest methodology with real lab exercises. Widely recommended as the single best starting point for aspiring penetration testers.
+  </Card>
+  <Card title="Hack The Box" href="https://hackthebox.com" icon="cube">
+    Realistic, challenge-driven machines spanning beginner to insane difficulty. Active machines require no spoilers; retired machines come with community walkthroughs. A must-have for continuous skill sharpening.
+  </Card>
+  <Card title="TryHackMe" href="https://tryhackme.com" icon="shield">
+    Guided, browser-based rooms with structured learning paths that take you from absolute beginner through intermediate offensive topics. The most accessible entry point for hands-on practice.
+  </Card>
+  <Card title="Offensive Security PEN-200" href="https://offensive-security.com" icon="crosshairs">
+    The course behind the **OSCP** certification — the industry's most respected offensive security credential. Expect a brutal, self-directed lab environment that demands real problem-solving under pressure.
+  </Card>
+  <Card title="INE: eCPPT Preparation" href="https://ine.com" icon="wifi">
+    Mid-level, practical penetration testing training designed to prepare you for the eLearnSecurity eCPPT exam. Bridges the gap between beginner courses and the demands of the OSCP.
+  </Card>
+  <Card title="VulnHub" href="https://vulnhub.com" icon="download">
+    A free repository of downloadable, intentionally vulnerable virtual machines. Build your own offline lab for zero cost and practice against a huge variety of target configurations.
+  </Card>
+</CardGroup>
+
+## Essential Pentest Tools
+
+Familiarity with the standard pentest toolkit is a baseline expectation for any offensive security role. The table below covers the tools you will use in nearly every engagement.
+
+| Tool | Purpose | Platform | Free? |
+|------|---------|----------|-------|
+| nmap | Network scanning and service discovery | All | Yes |
+| Metasploit Framework | Exploitation framework and payload delivery | All | Yes (Community) |
+| Burp Suite | Web application proxy and vulnerability scanner | All | Yes (Community) |
+| BloodHound | Active Directory attack path mapping | Windows | Yes |
+| LinPEAS / WinPEAS | Automated privilege escalation enumeration | Linux / Windows | Yes |
+| Gobuster | Directory and DNS brute forcing | All | Yes |
+
+## Certification Roadmap
+
+A logical certification progression will validate your skills at each stage and keep you competitive in the job market.
+
+**eJPT** (entry-level, INE) → **PNPT** or **CompTIA PenTest+** (mid-level) → **OSCP** (professional standard) → **OSCE3** (elite, three-exam bundle from Offensive Security)
+
+<Note>
+  The OSCP is widely considered the minimum professional benchmark for penetration testing roles. Work through Hack The Box and TryHackMe actively before enrolling — the lab environment rewards learners who are already comfortable with enumeration and manual exploitation.
+</Note>

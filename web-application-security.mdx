@@ -1,0 +1,87 @@
+---
+title: "Web Application Security: Resources and Learning Path"
+sidebarTitle: "Web App Security"
+description: "Master web application security with the best training resources for SQL injection, XSS, CSRF, authentication flaws, and the OWASP Top 10."
+---
+
+Web application security is one of the most in-demand and entry-accessible specializations in all of cybersecurity. Nearly every organization runs web-facing software, which means skilled web app security professionals are needed everywhere — from boutique bug bounty hunters to enterprise AppSec engineers. Because you can practice entirely in a browser without expensive hardware, it's also one of the most beginner-friendly paths into offensive and defensive security work.
+
+## Essential Concepts
+
+The OWASP Top 10 is the industry-standard reference for the most critical web application security risks. Every web security learner should know these categories cold — they form the vocabulary of nearly every web pentest report, bug bounty submission, and secure code review.
+
+| Rank | Vulnerability | Brief Description |
+|------|--------------|-------------------|
+| A01:2021 | Broken Access Control | Users can act outside their intended permissions, accessing or modifying other users' data |
+| A02:2021 | Cryptographic Failures | Sensitive data exposed due to weak, missing, or misconfigured encryption |
+| A03:2021 | Injection | Untrusted data sent to an interpreter (SQL, OS, LDAP) causes unintended command execution |
+| A04:2021 | Insecure Design | Architectural flaws and missing security controls baked in at design time |
+| A05:2021 | Security Misconfiguration | Insecure default configs, unnecessary features enabled, or missing hardening |
+| A06:2021 | Vulnerable and Outdated Components | Using libraries or frameworks with known, unpatched vulnerabilities |
+| A07:2021 | Identification and Authentication Failures | Broken login flows, weak credentials, missing MFA, or session management flaws |
+| A08:2021 | Software and Data Integrity Failures | Code or data pipelines without integrity verification, enabling supply chain attacks |
+| A09:2021 | Security Logging and Monitoring Failures | Insufficient logging prevents detection of breaches and active attacks |
+| A10:2021 | Server-Side Request Forgery (SSRF) | Server fetches attacker-supplied URLs, enabling access to internal resources |
+
+## Top Resources
+
+<CardGroup cols={2}>
+  <Card
+    title="PortSwigger Web Security Academy"
+    href="https://portswigger.net/web-security"
+    icon="globe"
+  >
+    Completely free and widely regarded as the best web application security training available anywhere. The academy covers every OWASP category through structured learning paths and hundreds of interactive labs — no installation required, everything runs in your browser.
+  </Card>
+  <Card
+    title="OWASP Testing Guide"
+    href="https://owasp.org/www-project-web-security-testing-guide/"
+    icon="list-check"
+  >
+    The definitive methodology reference for web application security testing. When you're on a real engagement or bug bounty, the OWASP Testing Guide tells you exactly what to test, how to test it, and what evidence to collect.
+  </Card>
+  <Card
+    title="PentesterLab"
+    href="https://pentesterlab.com"
+    icon="shield"
+  >
+    PentesterLab offers web security exercises organized into badges that prove specific skill sets. The free tier includes essential exercises; the Pro subscription unlocks a comprehensive curriculum with certificates recognized by employers.
+  </Card>
+  <Card
+    title="Hack The Box Web Challenges"
+    href="https://hackthebox.com"
+    icon="cube"
+  >
+    Hack The Box's web challenges present realistic, CTF-style web applications with real vulnerabilities to exploit. The difficulty ramps from easy to insane, making it a valuable resource across every skill level once you have the basics down.
+  </Card>
+  <Card
+    title="HackerOne Hacker101"
+    href="https://hacker101.com"
+    icon="bug"
+  >
+    Hacker101 is a free web hacking course built by HackerOne, the world's largest bug bounty platform. Beyond the curriculum, completing Hacker101 CTF flags earns you private bug bounty program invitations — a direct pipeline into real-world practice.
+  </Card>
+  <Card
+    title="TCM Security: Web App Pentesting"
+    href="https://academy.tcm-sec.com"
+    icon="user-secret"
+  >
+    A practical, hands-on course that takes you through web application pentesting methodology from reconnaissance to reporting. TCM's courses are known for being immediately applicable rather than purely theoretical.
+  </Card>
+</CardGroup>
+
+## Essential Tools
+
+You don't need expensive software to get started with web application security. These five tools are free, industry-standard, and used by professional pentesters every day:
+
+| Tool | Purpose | Free? |
+|------|---------|-------|
+| Burp Suite Community | HTTP proxy and traffic interceptor for manually inspecting and modifying requests | Yes (Community) |
+| OWASP ZAP | Automated web application scanner with active and passive scanning modes | Yes |
+| sqlmap | Automated SQL injection detection and exploitation tool | Yes |
+| ffuf | High-speed directory, file, and parameter fuzzing via wordlists | Yes |
+| Nikto | Web server misconfiguration and vulnerability scanner | Yes |
+
+<Tip>
+  If you commit to only one resource for web application security, make it PortSwigger Web Security Academy. It is genuinely better than most paid alternatives — the labs are more realistic, the explanations are clearer, and the breadth of coverage is unmatched. Work through the learning paths in order, complete every lab, and you'll emerge with skills that are immediately applicable to bug bounties and professional engagements.
+</Tip>

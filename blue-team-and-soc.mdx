@@ -1,0 +1,71 @@
+---
+title: "Blue Team and SOC Analyst: Training Resources Guide"
+sidebarTitle: "Blue Team & SOC"
+description: "Develop blue team and SOC analyst skills with training resources for threat detection, SIEM, incident response, log analysis, and defensive security."
+---
+
+While offensive security often captures the spotlight, blue team work is where most cybersecurity professionals spend their careers — and where organizations are most actively hiring. Blue teamers are the defenders: they monitor networks for suspicious activity, analyze logs and alerts, investigate incidents, and respond to threats before they escalate into breaches. Security Operations Center (SOC) analysts sit at the front line of this effort, triaging a constant stream of alerts and correlating signals across logs, endpoints, and network traffic. If you want a career built on systematic thinking, pattern recognition, and real-time problem solving, blue team is the discipline for you.
+
+## Core Blue Team Skills
+
+Before diving into courses and tools, make sure your learning plan covers these foundational competencies that every SOC analyst and blue team practitioner is expected to demonstrate:
+
+- **Log analysis** — reading and interpreting Windows Event Logs, Syslog, and application logs
+- **SIEM management** — building detection rules, dashboards, and alerts in Splunk or Elastic
+- **Threat hunting** — proactively searching for indicators of compromise that automated tools missed
+- **Incident response** — following a structured IR lifecycle from identification through lessons learned
+- **Network forensics** — analyzing packet captures to reconstruct attacker activity
+- **Malware triage** — performing basic static and dynamic analysis to classify suspicious files
+- **Threat intelligence** — consuming and operationalizing CTI feeds, IOCs, and TTPs from the MITRE ATT&CK framework
+
+## Top Training Resources
+
+<CardGroup cols={2}>
+  <Card title="Blue Team Labs Online" href="https://blueteamlabs.online" icon="shield">
+    Free and premium hands-on defensive security labs covering log analysis, threat hunting, malware analysis, and incident response. Purpose-built for blue team skill development with realistic scenarios.
+  </Card>
+  <Card title="LetsDefend" href="https://letsdefend.io" icon="magnifying-glass">
+    SOC analyst training with simulated alert investigation workflows that mimic a real security operations environment. Excellent for building alert triage instincts and SIEM-based detection skills.
+  </Card>
+  <Card title="Splunk Free Training" href="https://education.splunk.com" icon="chart-line">
+    Official free training from Splunk covering Fundamentals 1 and 2 — essential if you want to work in any SOC, since Splunk appears in the majority of enterprise security job postings.
+  </Card>
+  <Card title="Elastic Security Learning" href="https://elastic.co/learn" icon="database">
+    Free training on the ELK stack (Elasticsearch, Logstash, Kibana) with a focus on security use cases. Invaluable for teams running open-source SIEM environments or pursuing Elastic certifications.
+  </Card>
+  <Card title="Cybrary SOC Analyst Path" href="https://cybrary.it" icon="graduation-cap">
+    A structured, career-mapped learning path that takes you from security fundamentals through SOC-specific skills including threat detection, log review, and incident handling procedures.
+  </Card>
+  <Card title="SANS Reading Room" href="https://sans.org/reading-room/" icon="book">
+    Thousands of free, peer-reviewed research papers and whitepapers covering defensive security topics in depth. An authoritative reference for incident response procedures, forensic techniques, and detection engineering.
+  </Card>
+</CardGroup>
+
+## SIEM Platforms to Learn
+
+SIEM proficiency is the single most in-demand technical skill for SOC analysts. Invest time in at least one of the following platforms — ideally the one most common in your target job market.
+
+<CardGroup cols={2}>
+  <Card title="Splunk" href="https://splunk.com" icon="chart-bar">
+    The most frequently cited SIEM in security job postings. Free training and a developer license give you everything you need to build dashboards, write SPL detection queries, and practice threat hunting at home.
+  </Card>
+  <Card title="Microsoft Sentinel" href="https://azure.microsoft.com/en-us/products/microsoft-sentinel" icon="microsoft">
+    Cloud-native SIEM and SOAR solution deeply integrated with the Microsoft ecosystem. A free Azure trial lets you spin up a live Sentinel workspace and practice KQL-based detection rules immediately.
+  </Card>
+  <Card title="IBM QRadar" href="https://ibm.com/qradar" icon="building">
+    A dominant SIEM in large enterprise and government environments. The QRadar Community Edition is available for free and gives you hands-on exposure to one of the most widely deployed platforms in the industry.
+  </Card>
+  <Card title="Elastic SIEM" href="https://elastic.co" icon="magnifying-glass-chart">
+    A fully open-source SIEM option powered by the ELK stack. Zero licensing costs make it ideal for home lab deployments, and its capabilities rival commercial offerings at scale.
+  </Card>
+</CardGroup>
+
+## Certification Roadmap
+
+Follow this progression to build credibility and demonstrate your blue team skills to employers at every career stage.
+
+**CompTIA Security+** (foundational baseline) → **CompTIA CySA+** (analyst-focused, detection and response) → **Splunk Core Certified User** (SIEM proficiency) → **GIAC GCIH** (incident handling, respected enterprise credential)
+
+<Tip>
+  Set up a home SIEM lab using **Elastic** (free) or **Wazuh** (open-source XDR/SIEM) and forward logs from a few virtual machines on your network. Even a few hours of real log analysis — watching your own traffic, chasing your own alerts — will accelerate your learning faster than any course alone. It is also a compelling talking point in job interviews.
+</Tip>

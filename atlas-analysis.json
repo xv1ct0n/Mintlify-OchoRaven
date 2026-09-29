@@ -1,0 +1,93 @@
+{
+  "projectType": "general",
+  "projectName": "CyberLearn Hub",
+  "projectDescription": "A comprehensive knowledge base of free and paid cybersecurity training resources, covering certifications, hands-on labs, courses, tools, and learning paths for every skill level.",
+  "theme": "maple",
+  "primaryColor": "#ef7025",
+  "lightColor": "#eec9bc",
+  "darkColor": "#4fa1ab",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Resources",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "how-to-use",
+              "learning-paths"
+            ]
+          },
+          {
+            "group": "Free Training",
+            "pages": [
+              "free/platforms",
+              "free/ctf-and-labs",
+              "free/youtube-and-video",
+              "free/books-and-reading"
+            ]
+          },
+          {
+            "group": "Paid Training",
+            "pages": [
+              "paid/platforms",
+              "paid/bootcamps",
+              "paid/corporate-training"
+            ]
+          },
+          {
+            "group": "Certifications",
+            "pages": [
+              "certifications/entry-level",
+              "certifications/intermediate",
+              "certifications/advanced"
+            ]
+          },
+          {
+            "group": "Hands-On Practice",
+            "pages": [
+              "practice/home-labs",
+              "practice/capture-the-flag",
+              "practice/vulnerable-machines"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "By Domain",
+        "groups": [
+          {
+            "group": "Specializations",
+            "pages": [
+              "domains/network-security",
+              "domains/web-application-security",
+              "domains/cloud-security",
+              "domains/malware-analysis",
+              "domains/penetration-testing",
+              "domains/blue-team-and-soc"
+            ]
+          },
+          {
+            "group": "Tools & References",
+            "pages": [
+              "tools/essential-tools",
+              "tools/cheat-sheets",
+              "tools/communities-and-news"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Curated free cybersecurity training platforms and courses",
+    "Curated paid training platforms, bootcamps, and corporate programs",
+    "Certification roadmaps from entry-level to advanced (CompTIA, OSCP, CISSP, etc.)",
+    "Hands-on labs, CTF challenges, and vulnerable machine resources",
+    "Domain-specific learning tracks (network, web, cloud, malware, pen testing, blue team)",
+    "Essential tools reference and cheat sheets",
+    "Community resources and news feeds for continuous learning"
+  ],
+  "publicApiSurface": []
+}
