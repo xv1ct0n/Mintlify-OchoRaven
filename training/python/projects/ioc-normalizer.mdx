@@ -1,0 +1,1091 @@
+---
+title: "Project 1: IOC Normalizer"
+description: "A complete beginner walkthrough for building a functional Python IOC normalization and classification utility."
+icon: "filter"
+---
+
+# Project 1 — Build an IOC Normalizer
+
+This project teaches foundational Python by building a tool that solves a real defensive-cyber problem: converting a messy list of indicators of compromise (IOCs) into clean, classified, deduplicated, machine-readable data.
+
+<Info>
+**Final capability:** You will build `ioc_normalizer.py`, a command-line program that reads a text file, cleans each line, identifies IPv4 addresses, URLs, domains, MD5/SHA-1/SHA-256 hashes, rejects unsupported values, removes duplicates, and exports JSON.
+</Info>
+
+## Why this matters
+
+Security analysts regularly receive indicators from reports, tickets, threat-intelligence feeds, incident notes, and partner organizations. The data may contain blank lines, duplicates, inconsistent capitalization, surrounding whitespace, or multiple indicator types. Before indicators can be searched, enriched, shared, or loaded into another defensive tool, they often need to be normalized.
+
+This project intentionally uses the Python standard library so you can focus on core language concepts rather than frameworks.
+
+## Learning objectives
+
+By the end of the project, you should be able to explain and use:
+
+- variables and strings;
+- lists, dictionaries, and sets;
+- functions, parameters, and return values;
+- `if`/`elif`/`else` decisions;
+- `for` loops;
+- imports and standard-library modules;
+- file reading and writing;
+- `pathlib.Path`;
+- exception handling;
+- command-line arguments with `argparse`;
+- IPv4 validation with `ipaddress`;
+- URL parsing with `urllib.parse`;
+- regular expressions with `re`;
+- JSON serialization;
+- normalization versus validation;
+- basic program decomposition.
+
+## Final project structure
+
+Create this structure in your lab workspace:
+
+```text
+ioc-normalizer/
+├── ioc_normalizer.py
+├── sample_iocs.txt
+├── output/
+└── README.md
+```
+
+No third-party packages are required.
+
+---
+
+# Lesson 1 — Prepare the environment
+
+## Concept: Python scripts and the terminal
+
+A Python source file ends in `.py`. The Python interpreter reads the file and executes its statements. For this project, use Python 3.10 or newer when practical.
+
+Verify Python:
+
+```bash
+python3 --version
+```
+
+On Windows, you may instead use:
+
+```powershell
+python --version
+```
+
+Create the project directory:
+
+```bash
+mkdir ioc-normalizer
+cd ioc-normalizer
+mkdir output
+```
+
+Create `ioc_normalizer.py`, `sample_iocs.txt`, and `README.md` using your preferred editor.
+
+### First program
+
+Put this in `ioc_normalizer.py`:
+
+```python
+print("IOC Normalizer")
+```
+
+Run it:
+
+```bash
+python3 ioc_normalizer.py
+```
+
+Expected output:
+
+```text
+IOC Normalizer
+```
+
+**What you learned:** a `.py` file is executable program source, and `print()` sends text to standard output.
+
+---
+
+# Lesson 2 — Understand the input
+
+Add the following safe example data to `sample_iocs.txt`:
+
+```text
+192.0.2.10
+  198.51.100.25  
+EXAMPLE.COM
+example.com
+https://example.org/login
+http://test.example.net/path?id=4
+44d88612fea8a8f36de82e1278abb02f
+d3486ae9136e7856bc42212385ea797094475802
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+not an indicator
+
+192.0.2.10
+```
+
+These IP ranges and domains are reserved for documentation/examples.
+
+## Concept: one responsibility at a time
+
+Do not attempt to solve the entire project in one block of code. We will build a pipeline:
+
+```text
+input file
+   ↓
+read lines
+   ↓
+normalize text
+   ↓
+classify / validate
+   ↓
+deduplicate
+   ↓
+create records
+   ↓
+export JSON
+```
+
+Each stage becomes easier to understand and test when represented by a small function.
+
+---
+
+# Lesson 3 — Read a file
+
+## Concept: functions
+
+A function packages a specific behavior. It can receive values as parameters and return a result.
+
+Add this import and function:
+
+```python
+from pathlib import Path
+
+
+def read_indicators(file_path: Path) -> list[str]:
+    """Read candidate indicators from a UTF-8 text file."""
+    with file_path.open("r", encoding="utf-8") as file:
+        return file.readlines()
+```
+
+### What each part means
+
+`from pathlib import Path` imports Python's path abstraction. A `Path` object is preferable to manually concatenating filesystem strings.
+
+`file_path: Path` is a type hint. It communicates that the function expects a `Path` object.
+
+`-> list[str]` communicates that the function returns a list of strings.
+
+`with ... as file` uses a context manager. Python closes the file automatically when the block finishes, including when many errors occur.
+
+`readlines()` returns the lines as a list. Newline characters may still be attached; we will clean them next.
+
+### Test the function
+
+Temporarily add:
+
+```python
+input_path = Path("sample_iocs.txt")
+lines = read_indicators(input_path)
+print(lines)
+```
+
+Run the program and inspect the list.
+
+<Check>
+You should see strings containing the values from the sample file. Some will include `\n`, spaces, and inconsistent capitalization. That is expected.
+</Check>
+
+---
+
+# Lesson 4 — Normalize text
+
+## Concept: strings are values you can transform
+
+Normalization makes equivalent representations consistent. It should be deliberate: changing evidence unnecessarily can destroy meaning.
+
+For our beginner tool we will first perform conservative cleanup:
+
+```python
+def clean_value(value: str) -> str:
+    """Remove surrounding whitespace from a candidate indicator."""
+    return value.strip()
+```
+
+`strip()` removes whitespace from the beginning and end of a string. It does not remove spaces inside the value.
+
+Try:
+
+```python
+print(repr(clean_value("  198.51.100.25  \n")))
+```
+
+Expected:
+
+```text
+'198.51.100.25'
+```
+
+## Why use `repr()` while learning?
+
+`print()` can hide whitespace. `repr()` displays a representation that makes characters such as `\n` easier to see.
+
+## Blank lines
+
+A blank line becomes an empty string after `.strip()`.
+
+```python
+value = clean_value("   \n")
+
+if not value:
+    print("Blank value")
+```
+
+An empty string is *falsy* in Python, so `if not value:` is a common way to detect it.
+
+---
+
+# Lesson 5 — Recognize IPv4 addresses
+
+## Concept: prefer standard-library validators
+
+Do not write complex IP-address validation yourself when Python already provides `ipaddress`.
+
+Add:
+
+```python
+import ipaddress
+```
+
+Then:
+
+```python
+def is_ipv4(value: str) -> bool:
+    """Return True when value is a valid IPv4 address."""
+    try:
+        ipaddress.IPv4Address(value)
+        return True
+    except ipaddress.AddressValueError:
+        return False
+```
+
+## Exception handling
+
+Some functions signal invalid input by raising an exception. `try` executes code that might fail; `except` handles an expected failure.
+
+Test:
+
+```python
+print(is_ipv4("192.0.2.10"))
+print(is_ipv4("999.10.10.10"))
+print(is_ipv4("example.com"))
+```
+
+Expected:
+
+```text
+True
+False
+False
+```
+
+<Info>
+Catching the specific `AddressValueError` is better than using a broad `except:` because it avoids silently hiding unrelated programming errors.
+</Info>
+
+---
+
+# Lesson 6 — Recognize cryptographic hashes
+
+## Concept: patterns and regular expressions
+
+Common hash values can be represented as hexadecimal strings. For this exercise:
+
+- MD5 = 32 hexadecimal characters
+- SHA-1 = 40 hexadecimal characters
+- SHA-256 = 64 hexadecimal characters
+
+Import `re`:
+
+```python
+import re
+```
+
+Create a helper:
+
+```python
+def is_hex(value: str) -> bool:
+    """Return True when value contains only hexadecimal characters."""
+    return re.fullmatch(r"[0-9a-fA-F]+", value) is not None
+```
+
+`re.fullmatch()` requires the entire string to match the pattern.
+
+Now classify by length:
+
+```python
+def classify_hash(value: str) -> str | None:
+    """Return the recognized hash type or None."""
+    if not is_hex(value):
+        return None
+
+    if len(value) == 32:
+        return "md5"
+    elif len(value) == 40:
+        return "sha1"
+    elif len(value) == 64:
+        return "sha256"
+
+    return None
+```
+
+## Concept: `None`
+
+`None` represents the absence of a value. Here it means, "this string is not one of the hash formats we support."
+
+Test valid and invalid examples before continuing.
+
+---
+
+# Lesson 7 — Recognize URLs
+
+Use Python's URL parser:
+
+```python
+from urllib.parse import urlparse
+```
+
+Add:
+
+```python
+def is_url(value: str) -> bool:
+    """Return True for HTTP or HTTPS URLs containing a hostname."""
+    parsed = urlparse(value)
+    return parsed.scheme in {"http", "https"} and bool(parsed.hostname)
+```
+
+## Concept: sets
+
+`{"http", "https"}` is a set. Membership tests such as `x in my_set` are concise and efficient.
+
+The function requires both a supported scheme and a hostname. That prevents many arbitrary strings from being treated as URLs.
+
+Test:
+
+```python
+print(is_url("https://example.org/login"))
+print(is_url("example.org"))
+print(is_url("hello"))
+```
+
+---
+
+# Lesson 8 — Recognize domains
+
+Domain validation can become complicated. For this beginner project, use a deliberately limited rule suitable for learning rather than pretending to implement every valid DNS name.
+
+```python
+DOMAIN_PATTERN = re.compile(
+    r"^(?=.{1,253}$)(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$"
+)
+
+
+def is_domain(value: str) -> bool:
+    """Return True when value matches the project's simplified domain rule."""
+    return DOMAIN_PATTERN.fullmatch(value) is not None
+```
+
+### Read the pattern conceptually
+
+You do not need to memorize it. Understand the intent:
+
+- the complete value must match;
+- labels are separated by dots;
+- labels may contain letters, numbers, and internal hyphens;
+- the final label uses letters;
+- total and label lengths are bounded.
+
+<Warning>
+Real-world internationalized domains, unusual valid DNS labels, defanged indicators, IPv6, email addresses, and other observable types require additional handling. Documenting what your tool does **not** support is part of good engineering.
+</Warning>
+
+---
+
+# Lesson 9 — Build one classifier
+
+You now have specialized validators. Combine them behind one function.
+
+```python
+def classify_indicator(value: str) -> str | None:
+    """Classify a supported IOC value."""
+    if is_ipv4(value):
+        return "ipv4"
+
+    if is_url(value):
+        return "url"
+
+    hash_type = classify_hash(value)
+    if hash_type:
+        return hash_type
+
+    if is_domain(value):
+        return "domain"
+
+    return None
+```
+
+## Why order matters
+
+Classification rules can overlap. A central function gives you one explicit place to control precedence. As your tool evolves, you can test ambiguous cases rather than scattering classification logic throughout the program.
+
+### Exercise
+
+Before running the function, predict the result for each:
+
+```text
+192.0.2.10
+example.com
+https://example.com/path
+44d88612fea8a8f36de82e1278abb02f
+hello world
+```
+
+Then test your predictions.
+
+---
+
+# Lesson 10 — Type-specific normalization
+
+Lowercasing everything is tempting but not always correct. Normalize based on the indicator type.
+
+For this project:
+
+- IPv4: canonicalize with `ipaddress`;
+- domains: lowercase;
+- hashes: lowercase;
+- URLs: preserve the complete original URL after trimming.
+
+```python
+def normalize_indicator(value: str, indicator_type: str) -> str:
+    """Normalize a validated indicator according to its type."""
+    if indicator_type == "ipv4":
+        return str(ipaddress.IPv4Address(value))
+
+    if indicator_type in {"domain", "md5", "sha1", "sha256"}:
+        return value.lower()
+
+    return value
+```
+
+This distinction is important: **cleaning**, **validation**, **classification**, and **normalization** are related but separate operations.
+
+---
+
+# Lesson 11 — Build structured records
+
+A plain string is no longer enough. Downstream tools need context.
+
+## Concept: dictionaries
+
+A dictionary stores key/value pairs.
+
+```python
+record = {
+    "value": "example.com",
+    "type": "domain",
+    "source": "sample_iocs.txt",
+}
+```
+
+Build a function:
+
+```python
+def make_record(value: str, indicator_type: str, source: str) -> dict:
+    """Create a structured IOC record."""
+    return {
+        "value": value,
+        "type": indicator_type,
+        "source": source,
+    }
+```
+
+The output schema is now explicit and can later be extended with fields such as timestamps, confidence, tags, or enrichment results.
+
+---
+
+# Lesson 12 — Process every line
+
+Now combine the pieces.
+
+```python
+def process_indicators(lines: list[str], source: str) -> tuple[list[dict], list[str]]:
+    """Clean, classify, normalize, and deduplicate candidate indicators."""
+    records = []
+    rejected = []
+    seen = set()
+
+    for line in lines:
+        value = clean_value(line)
+
+        if not value:
+            continue
+
+        indicator_type = classify_indicator(value)
+
+        if indicator_type is None:
+            rejected.append(value)
+            continue
+
+        normalized = normalize_indicator(value, indicator_type)
+        dedupe_key = (indicator_type, normalized)
+
+        if dedupe_key in seen:
+            continue
+
+        seen.add(dedupe_key)
+        records.append(make_record(normalized, indicator_type, source))
+
+    return records, rejected
+```
+
+## What is happening?
+
+`records = []` creates the list of accepted structured indicators.
+
+`rejected = []` keeps unsupported values visible instead of silently discarding them.
+
+`seen = set()` creates a set for deduplication.
+
+`for line in lines:` processes each candidate.
+
+`continue` skips the remainder of the current loop iteration and moves to the next line.
+
+`dedupe_key = (indicator_type, normalized)` creates a tuple. A tuple can be stored in a set, giving us a convenient unique key.
+
+### Why deduplicate after normalization?
+
+`EXAMPLE.COM` and `example.com` should become one domain record. If you deduplicated before normalization, they would appear different.
+
+---
+
+# Lesson 13 — Export JSON
+
+JSON is widely used by APIs, automation systems, SIEM tooling, and security platforms.
+
+Import the module:
+
+```python
+import json
+```
+
+Add:
+
+```python
+def write_json(records: list[dict], output_path: Path) -> None:
+    """Write IOC records as formatted JSON."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with output_path.open("w", encoding="utf-8") as file:
+        json.dump(records, file, indent=2)
+```
+
+`mkdir(..., exist_ok=True)` ensures the output directory exists.
+
+`json.dump()` serializes Python data into JSON.
+
+`indent=2` makes the file readable to humans.
+
+---
+
+# Lesson 14 — Add command-line arguments
+
+Hard-coding filenames makes a script difficult to reuse. A command-line interface lets the analyst select input and output files.
+
+Import:
+
+```python
+import argparse
+```
+
+Add:
+
+```python
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Normalize and classify indicators of compromise."
+    )
+    parser.add_argument("input", type=Path, help="Text file containing one IOC per line")
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=Path("output/normalized_iocs.json"),
+        help="JSON output path",
+    )
+    return parser.parse_args()
+```
+
+Run help:
+
+```bash
+python3 ioc_normalizer.py --help
+```
+
+A useful CLI should explain itself without requiring the user to open the source code.
+
+---
+
+# Lesson 15 — Handle expected errors
+
+Analyst tools should fail clearly when the user makes a recoverable mistake.
+
+Create the orchestration function:
+
+```python
+def main() -> int:
+    args = parse_args()
+
+    if not args.input.exists():
+        print(f"Error: input file does not exist: {args.input}")
+        return 1
+
+    if not args.input.is_file():
+        print(f"Error: input path is not a file: {args.input}")
+        return 1
+
+    try:
+        lines = read_indicators(args.input)
+        records, rejected = process_indicators(lines, args.input.name)
+        write_json(records, args.output)
+    except (OSError, UnicodeError) as exc:
+        print(f"Error: {exc}")
+        return 1
+
+    print(f"Accepted indicators: {len(records)}")
+    print(f"Rejected values: {len(rejected)}")
+    print(f"Output: {args.output}")
+
+    if rejected:
+        print("\nRejected values:")
+        for value in rejected:
+            print(f"  - {value}")
+
+    return 0
+```
+
+Then add the standard entry point:
+
+```python
+if __name__ == "__main__":
+    raise SystemExit(main())
+```
+
+## Why this pattern?
+
+Importing a Python file and executing a Python file are different use cases. The `__name__` guard prevents `main()` from automatically running when the module is imported by another Python program or future test suite.
+
+Returning `0` represents success. A non-zero exit status represents failure and becomes especially useful later in shell scripts and CI/CD pipelines.
+
+---
+
+# Lesson 16 — Assemble the final program
+
+Your completed `ioc_normalizer.py` should contain the concepts developed above:
+
+```python
+import argparse
+import ipaddress
+import json
+import re
+from pathlib import Path
+from urllib.parse import urlparse
+
+
+DOMAIN_PATTERN = re.compile(
+    r"^(?=.{1,253}$)(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$"
+)
+
+
+def read_indicators(file_path: Path) -> list[str]:
+    """Read candidate indicators from a UTF-8 text file."""
+    with file_path.open("r", encoding="utf-8") as file:
+        return file.readlines()
+
+
+def clean_value(value: str) -> str:
+    """Remove surrounding whitespace from a candidate indicator."""
+    return value.strip()
+
+
+def is_ipv4(value: str) -> bool:
+    """Return True when value is a valid IPv4 address."""
+    try:
+        ipaddress.IPv4Address(value)
+        return True
+    except ipaddress.AddressValueError:
+        return False
+
+
+def is_hex(value: str) -> bool:
+    """Return True when value contains only hexadecimal characters."""
+    return re.fullmatch(r"[0-9a-fA-F]+", value) is not None
+
+
+def classify_hash(value: str) -> str | None:
+    """Return the recognized hash type or None."""
+    if not is_hex(value):
+        return None
+
+    if len(value) == 32:
+        return "md5"
+    elif len(value) == 40:
+        return "sha1"
+    elif len(value) == 64:
+        return "sha256"
+
+    return None
+
+
+def is_url(value: str) -> bool:
+    """Return True for HTTP or HTTPS URLs containing a hostname."""
+    parsed = urlparse(value)
+    return parsed.scheme in {"http", "https"} and bool(parsed.hostname)
+
+
+def is_domain(value: str) -> bool:
+    """Return True when value matches the project's simplified domain rule."""
+    return DOMAIN_PATTERN.fullmatch(value) is not None
+
+
+def classify_indicator(value: str) -> str | None:
+    """Classify a supported IOC value."""
+    if is_ipv4(value):
+        return "ipv4"
+
+    if is_url(value):
+        return "url"
+
+    hash_type = classify_hash(value)
+    if hash_type:
+        return hash_type
+
+    if is_domain(value):
+        return "domain"
+
+    return None
+
+
+def normalize_indicator(value: str, indicator_type: str) -> str:
+    """Normalize a validated indicator according to its type."""
+    if indicator_type == "ipv4":
+        return str(ipaddress.IPv4Address(value))
+
+    if indicator_type in {"domain", "md5", "sha1", "sha256"}:
+        return value.lower()
+
+    return value
+
+
+def make_record(value: str, indicator_type: str, source: str) -> dict:
+    """Create a structured IOC record."""
+    return {
+        "value": value,
+        "type": indicator_type,
+        "source": source,
+    }
+
+
+def process_indicators(lines: list[str], source: str) -> tuple[list[dict], list[str]]:
+    """Clean, classify, normalize, and deduplicate candidate indicators."""
+    records = []
+    rejected = []
+    seen = set()
+
+    for line in lines:
+        value = clean_value(line)
+
+        if not value:
+            continue
+
+        indicator_type = classify_indicator(value)
+
+        if indicator_type is None:
+            rejected.append(value)
+            continue
+
+        normalized = normalize_indicator(value, indicator_type)
+        dedupe_key = (indicator_type, normalized)
+
+        if dedupe_key in seen:
+            continue
+
+        seen.add(dedupe_key)
+        records.append(make_record(normalized, indicator_type, source))
+
+    return records, rejected
+
+
+def write_json(records: list[dict], output_path: Path) -> None:
+    """Write IOC records as formatted JSON."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with output_path.open("w", encoding="utf-8") as file:
+        json.dump(records, file, indent=2)
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Normalize and classify indicators of compromise."
+    )
+    parser.add_argument("input", type=Path, help="Text file containing one IOC per line")
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=Path("output/normalized_iocs.json"),
+        help="JSON output path",
+    )
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+
+    if not args.input.exists():
+        print(f"Error: input file does not exist: {args.input}")
+        return 1
+
+    if not args.input.is_file():
+        print(f"Error: input path is not a file: {args.input}")
+        return 1
+
+    try:
+        lines = read_indicators(args.input)
+        records, rejected = process_indicators(lines, args.input.name)
+        write_json(records, args.output)
+    except (OSError, UnicodeError) as exc:
+        print(f"Error: {exc}")
+        return 1
+
+    print(f"Accepted indicators: {len(records)}")
+    print(f"Rejected values: {len(rejected)}")
+    print(f"Output: {args.output}")
+
+    if rejected:
+        print("\nRejected values:")
+        for value in rejected:
+            print(f"  - {value}")
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```
+
+---
+
+# Lesson 17 — Run the finished project
+
+Execute:
+
+```bash
+python3 ioc_normalizer.py sample_iocs.txt
+```
+
+Or choose an output file:
+
+```bash
+python3 ioc_normalizer.py sample_iocs.txt --output output/iocs.json
+```
+
+Inspect the resulting JSON. It should resemble:
+
+```json
+[
+  {
+    "value": "192.0.2.10",
+    "type": "ipv4",
+    "source": "sample_iocs.txt"
+  },
+  {
+    "value": "198.51.100.25",
+    "type": "ipv4",
+    "source": "sample_iocs.txt"
+  },
+  {
+    "value": "example.com",
+    "type": "domain",
+    "source": "sample_iocs.txt"
+  }
+]
+```
+
+The actual file will also contain the other unique supported indicators from the sample input.
+
+---
+
+# Lesson 18 — Validate the project
+
+Do not stop at "it ran once." Test behavior deliberately.
+
+| Test | Expected behavior |
+| --- | --- |
+| Blank line | ignored |
+| Surrounding spaces | removed |
+| Duplicate IPv4 | only one output record |
+| `EXAMPLE.COM` + `example.com` | one lowercase domain record |
+| Valid MD5 | classified `md5` |
+| Valid SHA-1 | classified `sha1` |
+| Valid SHA-256 | classified `sha256` |
+| `999.1.1.1` | rejected |
+| `not an indicator` | rejected |
+| Missing input file | clear error and non-zero exit |
+| Nested output path | output directory created |
+
+## Debugging exercise
+
+If a value is classified incorrectly, trace the pipeline in order:
+
+```text
+What did read_indicators() return?
+        ↓
+What did clean_value() produce?
+        ↓
+Which validator returned True?
+        ↓
+What did normalize_indicator() change?
+        ↓
+Was the dedupe key already in seen?
+```
+
+This method is more valuable than randomly editing code until the symptom disappears.
+
+---
+
+# Lesson 19 — Write the README
+
+A functional tool that nobody else can understand is difficult to reuse.
+
+Your `README.md` should include:
+
+```markdown
+# IOC Normalizer
+
+## Purpose
+Normalize mixed IOC lists for defensive analysis workflows.
+
+## Supported Types
+- IPv4
+- Domain
+- HTTP/HTTPS URL
+- MD5
+- SHA-1
+- SHA-256
+
+## Requirements
+Python 3.10+
+
+## Usage
+python3 ioc_normalizer.py sample_iocs.txt
+
+## Output
+JSON records containing value, type, and source.
+
+## Limitations
+Document unsupported formats and simplified validation assumptions.
+
+## Security Notes
+The tool performs local parsing only and does not contact external services.
+```
+
+---
+
+# Knowledge check
+
+Before moving on, make sure you can answer these without looking at the completed code:
+
+1. Why do we normalize **after** classification?
+2. Why is a set useful for deduplication?
+3. What is the difference between a list, tuple, dictionary, and set in this project?
+4. Why do we use `Path` instead of relying entirely on strings?
+5. What does `return None` communicate from a classifier?
+6. Why catch `AddressValueError` instead of every exception?
+7. Why should `EXAMPLE.COM` and `example.com` collapse into one domain?
+8. Why don't we lowercase the entire URL?
+9. Why preserve rejected values?
+10. Why is the `if __name__ == "__main__":` block useful?
+
+---
+
+# Independent challenge
+
+Now close the final-code section and add **CSV export** yourself.
+
+Desired command:
+
+```bash
+python3 ioc_normalizer.py sample_iocs.txt --format csv --output output/iocs.csv
+```
+
+Use Python's [`csv`](https://docs.python.org/3/library/csv.html) module. Your CSV should contain:
+
+```text
+value,type,source
+```
+
+Do not replace the JSON capability. Make the format selectable.
+
+## Stretch challenges
+
+After the core project works:
+
+- count indicators by type;
+- add IPv6 support;
+- write rejected values to a separate file;
+- accept multiple input files;
+- preserve source filename for each input;
+- add unit tests with `pytest`;
+- support common defanged forms such as `[.]` only after defining safe, explicit refanging rules;
+- package the tool with `pyproject.toml`;
+- add a `--quiet` mode suitable for automation.
+
+<Warning>
+Do not add enrichment or automatic blocking to this beginner project. Classification and normalization should remain separate from decisions about whether an indicator is malicious or whether defensive action should be taken.
+</Warning>
+
+# Completion criteria
+
+You have completed Project 1 when you can rebuild the major pieces without copying the final solution and can explain **why** each component exists.
+
+Your finished tool should:
+
+- accept an input path from the command line;
+- safely read a text file;
+- remove blank lines and surrounding whitespace;
+- identify supported IPv4, domain, URL, MD5, SHA-1, and SHA-256 values;
+- normalize values according to type;
+- reject unsupported values without crashing;
+- deduplicate after normalization;
+- preserve source information;
+- create output directories as needed;
+- export valid JSON;
+- return a useful process exit status;
+- provide command-line help;
+- include a README documenting usage and limitations.
+
+## Reference material
+
+- [Python Tutorial](https://docs.python.org/3/tutorial/)
+- [`pathlib`](https://docs.python.org/3/library/pathlib.html)
+- [`ipaddress`](https://docs.python.org/3/library/ipaddress.html)
+- [`argparse`](https://docs.python.org/3/library/argparse.html)
+- [`json`](https://docs.python.org/3/library/json.html)
+- [`re`](https://docs.python.org/3/library/re.html)
+- [`urllib.parse`](https://docs.python.org/3/library/urllib.parse.html)
+
+<Card title="Return to Python Beginner" icon="arrow-left" href="/training/python/beginner">
+Continue the beginner Python learning path after completing this project.
+</Card>
