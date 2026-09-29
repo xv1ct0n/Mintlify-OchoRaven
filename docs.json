@@ -72,6 +72,10 @@
               "training/python/dco-detection-engineering",
               "training/python/resources"
             ]
+          },
+          {
+            "group": "CISSP",
+            "pages": []
           }
         ]
       },
