@@ -114,7 +114,8 @@
             "group": "Detection Engineering",
             "icon": "crosshairs",
             "pages": [
-              "training/detection-engineering/index"
+              "training/detection-engineering/index",
+              "training/detection-engineering/foundations"
             ]
           },
           {
