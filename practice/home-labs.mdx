@@ -1,0 +1,73 @@
+---
+title: "Build a Cybersecurity Home Lab for Hands-On Practice"
+sidebarTitle: "Home Labs"
+description: "Set up a cybersecurity home lab using virtual machines, network simulators, and free tools to practice ethical hacking and defensive security safely."
+---
+
+Building a home lab is the single fastest way to turn theoretical cybersecurity knowledge into real, employable skill. Unlike passive learning, a home lab puts you in the driver's seat — you configure the networks, break the systems, and fix the mess yourself. Every hour you spend in a lab environment deepens your muscle memory for tools like Nmap, Metasploit, Wireshark, and Burp Suite, and gives you concrete stories to tell in interviews. Best of all, modern virtualization software lets you run multiple operating systems on a single laptop for free.
+
+<Warning>
+  Only ever practice offensive techniques on systems you personally own or on systems for which you have **explicit, written permission** from the system owner. Unauthorized access — even with good intentions — is illegal in most jurisdictions and can result in criminal charges. Your home lab is your safe sandbox; keep your experiments there.
+</Warning>
+
+## Virtualization Platforms
+
+Your home lab starts with a hypervisor — software that lets you run multiple isolated virtual machines (VMs) on one physical host. The platforms below cover every budget and operating system.
+
+<CardGroup cols={2}>
+  <Card title="VirtualBox" icon="box" href="https://virtualbox.org">
+    Completely free and cross-platform (Windows, macOS, Linux), VirtualBox is the go-to choice for beginners. It supports snapshots, host-only networking, and a wide range of guest OSes with minimal configuration overhead.
+  </Card>
+
+  <Card title="VMware Workstation Pro" icon="server" href="https://vmware.com">
+    Now free for personal use, VMware Workstation Pro delivers better performance and stability than VirtualBox for demanding labs. It handles nested virtualization and large multi-VM topologies with ease.
+  </Card>
+
+  <Card title="Proxmox VE" icon="network-wired" href="https://proxmox.com">
+    A free, open-source Type-1 hypervisor you install directly on bare metal. Proxmox is ideal for advanced home labs where you want a dedicated server running dozens of VMs or LXC containers simultaneously.
+  </Card>
+
+  <Card title="UTM (macOS)" icon="apple" href="https://mac.getutm.app">
+    The best free VM solution for Apple Silicon Macs. UTM wraps QEMU with a polished native UI and supports both ARM and x86 guests, making it possible to run the full security toolkit on M-series hardware.
+  </Card>
+</CardGroup>
+
+## Recommended Lab OSes
+
+The right combination of attacker and target operating systems turns your hypervisor into a complete training range. Work through this list to build a well-rounded lab.
+
+<Steps>
+  <Step title="Kali Linux">
+    The industry-standard offensive security distribution, maintained by Offensive Security. Download the latest ISO or VM image from [kali.org](https://kali.org). Kali ships with hundreds of pre-installed tools — Nmap, Metasploit, Burp Suite, Wireshark, and more — so you can start practicing immediately without chasing down dependencies.
+  </Step>
+  <Step title="Parrot OS">
+    A lightweight alternative to Kali that runs comfortably on machines with 2 GB of RAM or less. Parrot OS includes the same core security toolset but with a smaller footprint and a privacy-focused default configuration, making it a strong choice if your host machine is older or resource-constrained.
+  </Step>
+  <Step title="Windows 10/11 Evaluation">
+    Microsoft offers free 90-day evaluation ISOs of Windows 10 and Windows 11 Enterprise directly from its website. Use these as realistic target machines for practicing Active Directory attacks, privilege escalation, and Windows-specific defense hardening — all without purchasing a license.
+  </Step>
+  <Step title="Metasploitable 2 / 3">
+    Metasploitable is an intentionally vulnerable Linux VM maintained specifically for penetration testing practice. It exposes dozens of deliberately broken services — outdated software, misconfigured daemons, weak credentials — giving you a safe, legal target for running Metasploit exploits and manual enumeration techniques.
+  </Step>
+  <Step title="Ubuntu Server">
+    A clean Ubuntu Server VM serves double duty in your lab: deploy it as a defensive target (harden SSH, configure firewalls, set up a SIEM agent) or use it to host vulnerable web applications like DVWA and Juice Shop. Its stability and extensive documentation make it the most versatile base image in any home lab.
+  </Step>
+</Steps>
+
+## Network Simulation
+
+Beyond virtual machines, dedicated network simulators let you build complex routing and switching topologies — essential practice for network security and infrastructure roles.
+
+<CardGroup cols={2}>
+  <Card title="GNS3" icon="network-wired" href="https://gns3.com">
+    GNS3 is a free, open-source network simulator that runs real router and firewall images (Cisco IOS, pfSense, VyOS) in a drag-and-drop topology editor. It integrates directly with VirtualBox and VMware, so you can bridge real VMs into your simulated network.
+  </Card>
+
+  <Card title="Cisco Packet Tracer" icon="sitemap" href="https://netacad.com">
+    Available for free with a Cisco Networking Academy account, Packet Tracer is a beginner-friendly simulator for learning TCP/IP fundamentals, VLAN segmentation, ACLs, and basic network security concepts — no real hardware required.
+  </Card>
+</CardGroup>
+
+<Tip>
+  **Take snapshots obsessively.** Before you start any lab exercise, snapshot every VM involved. After you exploit a machine, misconfigure a service, or install malware samples, you can revert every VM to a pristine state in seconds rather than rebuilding from scratch. Most hypervisors let you chain multiple snapshots, so create a "base" snapshot right after OS installation and a "lab ready" snapshot after you've installed your tools.
+</Tip>
