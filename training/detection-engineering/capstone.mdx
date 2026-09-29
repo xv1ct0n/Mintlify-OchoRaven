@@ -1,0 +1,304 @@
+---
+title: "Lesson 7: Detection Engineering Capstone"
+sidebarTitle: "7. Capstone"
+description: "Translate one observable network scenario into ES|QL, KQL, Suricata, and YARA detections with test evidence and deployment notes."
+icon: "flag-checkered"
+---
+
+# Lesson 7 — Detection engineering capstone
+
+This capstone requires you to translate one observable scenario across **packet, indexed-event, and file-content detection mechanisms** without pretending they are interchangeable.
+
+## Scenario
+
+A network capture contains an HTTP file transfer. Your job is to build a small detection package that lets an analyst identify the network transaction, locate related indexed events, summarize activity, and classify the extracted benign artifact.
+
+The goal is not to label the traffic malicious. The goal is to demonstrate that you can move from evidence to detection logic with explicit assumptions and reproducible tests.
+
+## Lab PCAP
+
+Use **`tcp-ecn-sample.pcap`** from the [Wireshark SampleCaptures](https://wiki.wireshark.org/SampleCaptures) HTTP section. Wireshark describes it as a TCP/HTTP file transfer capture using Explicit Congestion Notification (ECN).
+
+Hash the fixture before beginning:
+
+```bash
+sha256sum tcp-ecn-sample.pcap
+```
+
+Record the hash in your project README.
+
+## Deliverables
+
+Create a repository/folder containing:
+
+```text
+detection-capstone/
+├── README.md
+├── fixtures/
+│   └── tcp-ecn-sample.pcap
+├── suricata/
+│   └── lab.rules
+├── elastic/
+│   ├── filter.kql
+│   └── analytic.esql
+├── yara/
+│   └── artifact.yar
+├── expected/
+│   └── results.md
+└── notes/
+    └── tuning.md
+```
+
+If licensing or repository policy prevents copying the public PCAP into your own repository, store the verified source URL and SHA-256 instead.
+
+## Phase 1 — Establish ground truth
+
+Use Wireshark before writing any rule.
+
+Inspect:
+
+```text
+http
+```
+
+Then identify:
+
+- client and server IP;
+- TCP ports;
+- HTTP method;
+- Host header if present;
+- request URI;
+- response status;
+- transferred object or stream;
+- relevant TCP stream number.
+
+Write a short evidence statement:
+
+```text
+At <time>, <source> sent <method> <URI> to <destination>.
+The server returned <status> and transferred <object/context>.
+```
+
+Do not proceed until another analyst could reproduce that statement from the PCAP.
+
+## Phase 2 — Build the Suricata signature
+
+Your rule must match a **specific, stable element** of the observed HTTP request using an application-layer buffer.
+
+Template:
+
+```suricata
+alert http any any -> any any (
+  msg:"LAB capstone HTTP transaction";
+  flow:established,to_server;
+  http.host;
+  content:"<observed-host>";
+  nocase;
+  http.uri;
+  content:"<observed-uri-fragment>";
+  sid:1000200;
+  rev:1;
+)
+```
+
+Replace placeholders only with values you actually observed.
+
+Test:
+
+```bash
+mkdir -p out
+suricata -r fixtures/tcp-ecn-sample.pcap \
+  -S suricata/lab.rules \
+  -l out
+```
+
+Record expected alert count and the packet/session evidence that supports the match.
+
+### Required negative test
+
+Modify one rule condition so the rule should not match, then prove alert count becomes zero.
+
+## Phase 3 — Build the KQL filter
+
+Ingest the corresponding HTTP event data into your Elastic lab.
+
+Start by finding actual field names. Then write `elastic/filter.kql` to identify the relevant HTTP event using document-level conditions.
+
+Example shape:
+
+```text
+network.protocol: http
+AND http.request.method: GET
+AND <verified-host-field>: "<observed-host>"
+```
+
+Your KQL deliverable must include a comment in `results.md` explaining why this is a **filter**, not an aggregate.
+
+### Required negative test
+
+Change one exact value so the filter returns zero expected documents.
+
+## Phase 4 — Build the ES|QL analytic
+
+Use ES|QL to summarize the transaction context rather than merely duplicating the KQL filter.
+
+Example shape:
+
+```esql
+FROM logs-*
+| WHERE network.protocol == "http"
+| WHERE source.ip IS NOT NULL
+| STATS event_count = COUNT(*) BY source.ip, destination.ip
+| WHERE event_count >= 1
+| SORT event_count DESC
+```
+
+Then improve it using the verified fields available in your dataset.
+
+Your final analytic should answer a useful question such as:
+
+```text
+Which sources communicated with the observed destination/service,
+and how many relevant events did each produce in the lab window?
+```
+
+Document why each output row should or should not become an alert.
+
+## Phase 5 — Extract and scan the transferred artifact
+
+Use Wireshark **Export Objects → HTTP** when the capture exposes an exportable object, or reconstruct the relevant stream into a lab file.
+
+Hash the artifact:
+
+```bash
+sha256sum extracted/*
+```
+
+Then inspect it with safe static tools such as:
+
+```bash
+file extracted/<artifact>
+strings -a extracted/<artifact> | head -50
+xxd -l 64 extracted/<artifact>
+```
+
+Write a YARA rule based only on characteristics you can justify.
+
+Template:
+
+```yara
+rule Capstone_Benign_Artifact
+{
+    meta:
+        purpose = "training capstone"
+        source = "tcp-ecn-sample.pcap"
+
+    strings:
+        $a = "<stable observed string>" ascii
+        $b = { <stable observed bytes> }
+
+    condition:
+        $a and $b
+}
+```
+
+### Required negative test
+
+Create an unrelated benign file and confirm the YARA rule does not match it.
+
+## Phase 6 — Correlate in Security Onion / Arkime
+
+If Security Onion is available:
+
+1. import or replay the PCAP using your approved lab workflow;
+2. locate the Suricata alert or related HTTP event;
+3. pivot to the corresponding Arkime session;
+4. verify the packet evidence;
+5. compare the packet values with the fields indexed into the search platform.
+
+Record any normalization difference, for example:
+
+```text
+packet field → Suricata EVE field → indexed field
+```
+
+This translation table is valuable detection-engineering documentation.
+
+## Phase 7 — Add OpenCTI context appropriately
+
+If OpenCTI is available, create or search only for **lab-safe observables** according to your organization's procedures.
+
+Use OpenCTI to practice the enrichment workflow:
+
+```text
+detection output
+      ↓
+observable extraction
+      ↓
+OpenCTI lookup/context
+      ↓
+analyst notes
+```
+
+Do not claim the capstone traffic is malicious merely because an observable has external context.
+
+## Phase 8 — Write the detection package README
+
+Your README should contain:
+
+```text
+Detection objective
+Data sources
+PCAP source + SHA-256
+Ground-truth observations
+Suricata rule + expected alerts
+KQL filter + expected hits
+ES|QL analytic + expected rows
+YARA rule + artifact SHA-256
+Positive tests
+Negative tests
+Known false positives
+Known false negatives
+Required field mappings
+Encryption/visibility assumptions
+Performance considerations
+Owner and review cadence
+```
+
+## Evaluation rubric
+
+| Area | Strong result |
+| --- | --- |
+| Ground truth | Every rule traces back to observable evidence. |
+| Engine choice | KQL filters, ES|QL aggregates, Suricata matches network evidence, YARA scans content. |
+| Reproducibility | Another analyst can run the same fixture and obtain expected results. |
+| Negative testing | Each mechanism has at least one meaningful non-match test. |
+| Tuning | Exceptions and thresholds have explicit operational reasons. |
+| Schema awareness | Field names are verified, not assumed. |
+| Investigation context | Alerts contain or document pivots to source evidence. |
+| Limitations | Encryption, missing fields, parser behavior, and environment scope are documented. |
+
+## Advanced extension — Detection as code
+
+Use the existing Python curriculum to automate your capstone checks:
+
+- [Detection Test Harness](/training/python/intermediate-projects/detection-test-harness)
+- [Detection-as-Code Validator](/training/python/advanced-projects/detection-as-code-validator)
+
+A mature repository should eventually run fixture-based checks whenever detection logic changes.
+
+## Completion criteria
+
+You are complete when you can explain, without reading the syntax reference:
+
+1. why KQL and ES|QL are not interchangeable;
+2. why Suricata buffer selection affects fidelity;
+3. why YARA should scan the extracted artifact rather than be treated as a PCAP query language;
+4. how a PCAP fixture becomes a regression test;
+5. how to prove a detection's data dependencies;
+6. how to distinguish detection evidence from threat-intelligence enrichment.
+
+<CardGroup cols={2}>
+  <Card title="Course Overview" href="/training/detection-engineering/index" icon="list">Review the full Detection Engineering path.</Card>
+  <Card title="Network Forensics" href="/training/network-forensics/index" icon="network-wired">Continue practicing packet-grounded investigation.</Card>
+</CardGroup>
