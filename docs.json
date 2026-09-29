@@ -79,6 +79,14 @@
               "training/cissp/index",
               "training/cissp/weekly-plan"
             ]
+          },
+          {
+            "group": "Intermediate Projects",
+            "pages": []
+          },
+          {
+            "group": "Advanced Projects",
+            "pages": []
           }
         ]
       },
