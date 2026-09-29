@@ -76,7 +76,8 @@
           {
             "group": "CISSP",
             "pages": [
-              "training/cissp/index"
+              "training/cissp/index",
+              "training/cissp/weekly-plan"
             ]
           }
         ]

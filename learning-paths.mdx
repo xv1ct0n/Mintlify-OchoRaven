@@ -1,134 +1,80 @@
 ---
-title: "Structured Cybersecurity Learning Paths by Skill Level"
+title: "Cybersecurity Learning Paths"
 sidebarTitle: "Learning Paths"
-description: "Follow a structured cybersecurity learning path tailored to your experience level — from complete beginner to advanced security professional."
+description: "Choose a foundation, then follow focused paths in Python, blue team, DFIR, OT, cloud, AI/ML, offensive security, or CISSP."
 ---
 
-Without a structured path, cybersecurity self-study tends to collapse into one of two failure modes: you either bounce between disconnected topics and never build the layered understanding the field demands, or you stall on prerequisites that no one told you to cover first. A learning path solves both problems by telling you what to learn, in what order, and roughly how long each phase should take. The three paths below are sequenced to build on each other — if you're new, start at Beginner even if it feels slow, because the fundamentals you build there are what everything else sits on top of.
+# Cybersecurity learning paths
 
-<Tabs>
-  <Tab title="Beginner">
-    ## Beginner Path
+Choose a starting stage, build evidence of skill in a lab, and then select a specialization. You can combine paths. The sequence matters more than a calendar deadline.
 
-    **Goal:** Build a solid security foundation and land your first certification within 12 months.
+## Choose your starting point
 
-    ### Focus Areas
+| Stage | Start with | Demonstrate progress |
+| --- | --- | --- |
+| Beginner | [Operating systems](/domains/operating-systems), [network security](/domains/network-security), [free platforms](/free/platforms), [entry-level certifications](/certifications/entry-level) | Explain a DNS lookup and TCP session, use Linux and PowerShell basics, and complete guided labs. |
+| Intermediate | [SIEM and tools](/domains/siem-and-tools), [blue team and SOC](/domains/blue-team-and-soc), [Python](/training/python/index), [intermediate certifications](/certifications/intermediate) | Investigate a sample dataset, produce a timeline, and build one tested automation utility. |
+| Advanced | Pick a domain path below, use [advanced certifications](/certifications/advanced) where relevant, and build a portfolio of defensible analysis | Design and validate a detection, investigation, architecture, or tool that another analyst can reproduce. |
 
-    The beginner path covers the foundational knowledge that every security professional needs, regardless of specialization. Skipping these topics to jump straight into "hacking" is the most common mistake new learners make — and it's why so many people plateau early.
-
-    - **Networking Fundamentals** — TCP/IP, DNS, DHCP, HTTP/S, subnetting, the OSI model, and how packets actually move across a network. You cannot defend or attack what you don't understand at this level.
-    - **Operating System Basics** — Linux command line fluency (file system navigation, permissions, process management, basic scripting) and Windows fundamentals (Active Directory concepts, registry, PowerShell basics).
-    - **Introduction to Security Concepts** — CIA triad, authentication vs. authorization, common attack types (phishing, malware, MITM, SQL injection at a conceptual level), and basic defensive principles.
-    - **Introduction to Security Tools** — Wireshark for packet analysis, Nmap for basic scanning, and a first look at SIEM concepts.
-
-    ### Recommended First Steps
-
-    | Resource | Cost | Why It's Here |
-    |---|---|---|
-    | [TryHackMe](https://tryhackme.com) — Pre-Security Path | 🆓/💳 | Browser-based labs with zero setup; the Pre-Security path is purpose-built for absolute beginners |
-    | [Professor Messer's CompTIA Security+ Course](https://professormesser.com) | 🆓 | The gold standard free resource for Security+ prep — comprehensive, clear, and constantly updated |
-    | [CompTIA Security+](https://www.comptia.org/certifications/security) | 💳 | The most widely recognized entry-level certification; a concrete milestone to work toward |
-    | [CS50's Introduction to Cybersecurity](https://cs50.harvard.edu/cybersecurity/) | 🆓 | Harvard's free intro course — excellent context-setting for beginners with some CS background |
-
-    ### Expected Timeline
-
-    | Phase | Duration | Milestone |
-    |---|---|---|
-    | Networking & OS Fundamentals | 6–10 weeks | Comfortable with Linux CLI and basic networking |
-    | Security Concepts + TryHackMe Pre-Security | 8–12 weeks | Completed TryHackMe Pre-Security path |
-    | Security+ Exam Prep | 8–12 weeks | Passed CompTIA Security+ |
-    | **Total** | **5–8 months** | Job-ready for entry-level SOC/analyst roles |
-
-    Studying 10–15 hours per week, most beginners complete this path in 6–9 months. With lighter study schedules (5–7 hours/week), budget 12 months.
-  </Tab>
-
-  <Tab title="Intermediate">
-    ## Intermediate Path
-
-    **Goal:** Develop practical, hands-on skills across offensive and defensive disciplines and earn a role-specific certification within 1–3 years of starting.
-
-    ### Focus Areas
-
-    The intermediate path assumes you have networking fundamentals, Linux proficiency, and a foundational security certification (or equivalent knowledge) already in hand. Now you add practical depth — the ability to actually execute techniques, not just describe them.
-
-    - **Practical Penetration Testing** — Enumeration, exploitation, privilege escalation, and post-exploitation against realistic targets. Methodology matters as much as tool knowledge here.
-    - **Blue Team Skills** — Log analysis, SIEM tuning, incident response workflows, threat hunting fundamentals, and defensive tool configuration.
-    - **Specific Domain Depth** — Pick one specialization to go deep in: web application security, network security, cloud security, or another domain. Breadth is useful; depth is what gets you hired.
-    - **Scripting and Automation** — Python scripting for security tasks (parsing logs, automating recon, writing simple exploits), and Bash scripting for sysadmin and IR workflows.
-
-    ### Recommended Resources
-
-    | Resource | Cost | Best For |
-    |---|---|---|
-    | [Hack The Box](https://hackthebox.com) | 🆓/💳 | Realistic penetration testing labs across all difficulty levels |
-    | [TCM Security Practical Courses](https://tcm-sec.com) | 💳 | High-quality, affordable practical pentesting and ethical hacking courses |
-    | [eJPT (eLearnSecurity)](https://elearnsecurity.com/product/ejpt-certification/) | 💳 | Excellent first practical pentest cert — affordable and beginner-to-intermediate |
-    | [CEH (EC-Council)](https://www.eccouncil.org/train-certify/certified-ethical-hacker-ceh/) | 💳 | Broad ethical hacking certification; valued in enterprise and government contexts |
-    | [Blue Team Labs Online](https://blueteamlabs.online) | 🆓/💳 | Defensive scenarios, SIEM challenges, and incident response practice |
-
-    ### Expected Timeline
-
-    | Phase | Duration | Milestone |
-    |---|---|---|
-    | Practical Pentesting Foundations | 10–14 weeks | First HTB machines compromised; eJPT earned |
-    | Domain Specialization | 12–20 weeks | Completed domain-specific course track |
-    | Certification Prep + Exam | 8–12 weeks | CEH, CompTIA CySA+, or equivalent passed |
-    | **Total** | **8–12 months** | Qualified for pentester, SOC L2, or analyst roles |
-
-    This phase assumes 10+ hours of study per week. The more lab time you log, the faster your skills develop — passive video watching alone will not get you through this phase.
-  </Tab>
-
-  <Tab title="Advanced">
-    ## Advanced Path
-
-    **Goal:** Achieve expert-level certification, specialize deeply in one discipline, and position for senior, lead, or specialist roles — typically 3+ years into your security journey.
-
-    ### Focus Areas
-
-    The advanced path is for practitioners who are already working in security or have completed the intermediate path and want to reach the top tier of the profession. The emphasis shifts from "learning the tools" to "mastering methodology, building custom capabilities, and developing strategic thinking."
-
-    - **Offensive Security Mastery** — Advanced exploitation, custom tool development, Active Directory attacks, buffer overflows, and the skills tested by OSCP and beyond.
-    - **Red and Blue Team Specialization** — Red team operations (adversary simulation, C2 frameworks, evasion), or blue team specialization (threat intelligence, malware analysis, digital forensics and incident response).
-    - **Cloud Security Architecture** — Securing AWS, Azure, and GCP environments at the architecture level; cloud-native SIEM and detection engineering; IAM attack paths.
-    - **Security Leadership and Governance** — For those moving toward CISO, architect, or management tracks: CISSP, risk frameworks (NIST, ISO 27001), and the business side of security programs.
-
-    ### Recommended Resources and Platforms
-
-    | Resource | Cost | Best For |
-    |---|---|---|
-    | [OffSec (OSCP / PEN-200)](https://www.offsec.com/courses/pen-200/) | 💳 | The gold standard offensive security certification — rigorous, practical, highly respected |
-    | [SANS Institute](https://www.sans.org) | 💳 | World-class advanced courses across all domains; GIAC certifications are elite-tier |
-    | [Certified Red Team Professional (CRTP)](https://www.alteredsecurity.com/adlab) | 💳 | Focused Active Directory attack and defense — essential for red/blue team specialization |
-    | [CISSP (ISC2)](https://www.isc2.org/Certifications/CISSP) | 💳 | The premier management and architecture certification; typically requires 5 years of experience |
-    | [Cloud Security Alliance Training](https://cloudsecurityalliance.org/education) | 🆓/💳 | CCSK and cloud security architecture resources from the industry standards body |
-    | [Malware Traffic Analysis](https://www.malware-traffic-analysis.net) | 🆓 | Free PCAP exercises and real-world malware samples for DFIR and SOC analysts |
-
-    ### Expected Timeline
-
-    | Phase | Duration | Milestone |
-    |---|---|---|
-    | OSCP / Advanced Offensive Prep | 3–6 months | OSCP certification earned |
-    | Specialization Deepdive | 4–8 months | SANS course, CRTP, or cloud cert completed |
-    | Leadership / Architecture Track | Ongoing | CISSP or equivalent; senior role attained |
-    | **Total** | **12–24 months** | Senior, specialist, or lead-level positions |
-
-    Advanced certifications like OSCP and GIAC exams are demanding — most candidates study 15–20+ hours per week during active exam prep. Professional experience alongside study significantly accelerates outcomes at this level.
-  </Tab>
-</Tabs>
-
-<Note>
-  All timelines on this page are estimates based on typical learner outcomes at 10–15 hours of study per week. Your actual pace will depend on your prior background, the consistency of your study schedule, and the depth of hands-on practice you put in. Don't treat these numbers as deadlines — treat them as calibration points.
-</Note>
-
-## Your Next Steps
-
-Ready to start? These two sections are the natural complement to whichever learning path you've chosen — certifications give you a measurable milestone to work toward, and hands-on practice is what locks in everything you study.
+## Focused paths
 
 <CardGroup cols={2}>
-  <Card title="Certifications" icon="certificate" href="/certifications/entry-level">
-    Browse certifications by level, cost, and career track — with study resources and exam tips for each one.
+  <Card title="Python for Security" icon="python" href="/training/python/index">
+    Beginner → intermediate → advanced projects, including three complete beginner builds.
   </Card>
-  <Card title="Hands-On Practice" icon="flag" href="/practice/capture-the-flag">
-    Find CTF platforms, vulnerable labs, and live hacking environments to put your skills to work.
+  <Card title="DCO & Detection Engineering" icon="shield-halved" href="/training/python/dco-detection-engineering">
+    Parse telemetry, enrich indicators, test rules, validate detections, and build a capstone pipeline.
+  </Card>
+  <Card title="CISSP" icon="certificate" href="/training/cissp/index">
+    Follow the date-free 15-week OSG, video, question-bank, and remediation sequence.
+  </Card>
+  <Card title="Blue Team & Threat Hunting" icon="magnifying-glass" href="/domains/blue-team-and-soc">
+    Build a lab, query telemetry, reconstruct activity, and write a clear finding.
+  </Card>
+  <Card title="Network & DFIR" icon="network-wired" href="/domains/network-security">
+    Learn packets and protocols, analyze PCAPs, then practice malware and memory forensics.
+  </Card>
+  <Card title="ICS & OT Security" icon="industry" href="/domains/ot-security">
+    Study industrial protocols and design safe, context-aware detection hypotheses.
+  </Card>
+  <Card title="AI & ML for Security" icon="brain" href="/domains/ai-ml-security">
+    Build Python and data foundations, then compare heuristics with models on sanitized data.
+  </Card>
+  <Card title="Cloud Security" icon="cloud" href="/domains/cloud-security">
+    Study identity, logging, network controls, and misconfiguration in a controlled cloud lab.
+  </Card>
+  <Card title="Web & Penetration Testing" icon="bug" href="/domains/web-application-security">
+    Learn web fundamentals, practice in isolated labs, and document findings and fixes.
   </Card>
 </CardGroup>
+
+## Suggested sequences
+
+### Blue team and detection engineering
+
+1. [Linux and Windows foundations](/domains/operating-systems) → [network traffic analysis](/domains/network-security).
+2. [SIEM and tools](/domains/siem-and-tools) → [blue team and SOC](/domains/blue-team-and-soc).
+3. [Python beginner projects](/training/python/beginner) → [DCO and detection engineering projects](/training/python/dco-detection-engineering).
+4. Build a portfolio entry with sample data, query or rule, test cases, false positives, and an analyst-facing explanation.
+
+### DFIR and malware
+
+1. [Network security](/domains/network-security) → [SIEM investigation](/domains/siem-and-tools).
+2. [Malware analysis](/domains/malware-analysis) → [CTF and forensics challenges](/free/ctf-and-labs).
+3. Document a case timeline, evidence sources, indicators, confidence, and containment recommendations.
+
+### OT security
+
+1. [Network security](/domains/network-security) → [ICS and OT security](/domains/ot-security).
+2. Use lab traffic to document device roles and normal protocol behavior.
+3. Develop a detection hypothesis, validate it safely, and explain operational impact.
+
+### Leadership and architecture
+
+1. Build depth in [cloud security](/domains/cloud-security), [security operations](/domains/blue-team-and-soc), and risk-based decisions.
+2. Follow the [CISSP study path](/training/cissp/index) and map work to the [official exam outline](https://www.isc2.org/certifications/cissp/cissp-certification-exam-outline).
+3. Practice explaining tradeoffs, ownership, and business impact alongside technical controls.
+
+<Note>
+  Use [hands-on labs](/practice/home-labs) and [CTFs](/practice/capture-the-flag) throughout. Work only on systems and data you are authorized to use.
+</Note>
