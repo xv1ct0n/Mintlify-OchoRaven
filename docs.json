@@ -35,14 +35,37 @@
               "training/python/advanced",
               "training/python/dco-detection-engineering"
             ]
+          },
+          {
+            "group": "Network Security Labs",
+            "pages": [
+              "training/network-forensics/wireshark"
+            ]
           }
         ]
       },
       {
         "tab": "By Domain",
         "groups": [
-          {"group": "Specializations", "pages": ["domains/network-security", "domains/web-application-security", "domains/cloud-security", "domains/malware-analysis", "domains/penetration-testing", "domains/blue-team-and-soc"]},
-          {"group": "Tools & References", "pages": ["tools/essential-tools", "tools/cheat-sheets", "tools/communities-and-news"]}
+          {
+            "group": "Specializations",
+            "pages": [
+              "network-security",
+              "web-application-security",
+              "cloud-security",
+              "malware-analysis",
+              "penetration-testing",
+              "blue-team-and-soc"
+            ]
+          },
+          {
+            "group": "Tools & References",
+            "pages": [
+              "essential-tools",
+              "cheat-sheets",
+              "communities-and-news"
+            ]
+          }
         ]
       }
     ]
