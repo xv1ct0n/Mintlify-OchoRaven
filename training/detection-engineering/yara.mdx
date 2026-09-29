@@ -1,0 +1,295 @@
+---
+title: "Lesson 5: YARA Signature Engineering"
+sidebarTitle: "5. YARA"
+description: "Write YARA file/content signatures, extract benign artifacts from PCAP, and validate string, byte-pattern, and condition logic."
+icon: "file-code"
+---
+
+# Lesson 5 — YARA signature engineering
+
+YARA identifies files, byte buffers, and process memory by matching strings, hexadecimal byte patterns, regular expressions, metadata, and boolean conditions.
+
+YARA is **not** a packet-detection engine. In a network-forensics workflow, the packet capture provides the transport evidence; you extract an authorized artifact, then scan that artifact with YARA.
+
+## Learning objectives
+
+You will learn to:
+
+- read YARA rule structure;
+- use text, hexadecimal, and regular-expression strings;
+- combine multiple indicators with conditions;
+- reduce brittle single-string signatures;
+- test rules against positive and negative files;
+- connect network evidence to file-signature evidence without confusing the two.
+
+## Lab PCAP
+
+Use **`http_with_jpegs.cap.gz`** from the [Wireshark SampleCaptures](https://wiki.wireshark.org/SampleCaptures) HTTP section. Wireshark documents it as a libpcap capture containing JPEG images that can be reassembled and saved.
+
+After downloading:
+
+```bash
+gunzip http_with_jpegs.cap.gz
+mv http_with_jpegs.cap http_with_jpegs.pcap
+```
+
+Renaming the decompressed libpcap file to `.pcap` does not change its contents; it only makes the lab naming consistent.
+
+## Step 1 — Extract a benign HTTP object
+
+Open `http_with_jpegs.pcap` in Wireshark and use:
+
+```text
+File → Export Objects → HTTP
+```
+
+Save one JPEG into a dedicated lab directory such as:
+
+```text
+lab-artifacts/
+```
+
+Do not execute unknown files extracted from untrusted captures. This lab intentionally uses a benign image capture.
+
+## Step 2 — Hash the artifact first
+
+Linux/macOS:
+
+```bash
+sha256sum lab-artifacts/*
+```
+
+PowerShell:
+
+```powershell
+Get-FileHash .\lab-artifacts\* -Algorithm SHA256
+```
+
+Hashing establishes the exact file instance you tested. Your rule-development notes should record that hash.
+
+## YARA rule anatomy
+
+A basic YARA rule contains a rule name and a required `condition` section. Most useful rules also include `meta` and `strings`.
+
+```yara
+rule Lab_JPEG_Format
+{
+    meta:
+        author = "training"
+        purpose = "benign file-format lab"
+
+    strings:
+        $jpeg_magic = { FF D8 FF }
+
+    condition:
+        $jpeg_magic at 0
+}
+```
+
+### What this rule does
+
+- `$jpeg_magic` defines a hexadecimal byte pattern;
+- `at 0` requires the pattern at the beginning of the file;
+- the rule identifies a JPEG-like header, not malicious content.
+
+## Step 3 — Run the rule
+
+Save the rule as `jpeg-format.yar`:
+
+```bash
+yara jpeg-format.yar lab-artifacts/
+```
+
+To recurse into directories:
+
+```bash
+yara -r jpeg-format.yar lab-artifacts/
+```
+
+Expected result: the rule should match JPEG files that begin with the defined marker.
+
+## Step 4 — Build a stronger condition
+
+Single magic-byte rules are often too generic for security detection. Add multiple independent observations.
+
+Example:
+
+```yara
+rule Lab_JPEG_Structure
+{
+    meta:
+        author = "training"
+        confidence = "low"
+        purpose = "demonstrate multi-condition matching"
+
+    strings:
+        $jpeg_magic = { FF D8 FF }
+        $jfif = "JFIF" ascii
+        $exif = "Exif" ascii
+
+    condition:
+        $jpeg_magic at 0 and ($jfif or $exif)
+}
+```
+
+This is still a file-format identification rule, but it teaches a key detection-engineering principle: combine evidence rather than depending on one weak indicator.
+
+## Text strings
+
+YARA text strings are case-sensitive by default:
+
+```yara
+$tool = "ExampleTool"
+```
+
+Use `nocase` only when case variation is meaningful:
+
+```yara
+$tool = "exampletool" nocase
+```
+
+Use `wide` when UTF-16-like string representation is relevant:
+
+```yara
+$tool = "ExampleTool" ascii wide
+```
+
+## Hex strings
+
+Hex strings are useful when byte structure matters more than text:
+
+```yara
+$pattern = { 4D 5A ?? ?? 50 45 }
+```
+
+`??` means an unknown byte. Flexible byte patterns can be useful, but excessive wildcards reduce selectivity.
+
+## Regular expressions
+
+Regex can express variable text structure:
+
+```yara
+$version = /Version:[ ]+[0-9]+\.[0-9]+/
+```
+
+Use regex only when necessary. Literal strings and byte patterns are often faster and easier to review.
+
+## Conditions are the detection logic
+
+Example:
+
+```yara
+condition:
+    2 of ($a, $b, $c)
+```
+
+This means at least two of the selected strings must match.
+
+Example with file size:
+
+```yara
+condition:
+    filesize < 5MB and 2 of them
+```
+
+A good condition captures the relationship among indicators rather than simply listing everything observed in one sample.
+
+## Step 5 — Create a negative fixture
+
+Create a plain text file:
+
+```bash
+printf 'This is a benign negative control.\n' > negative.txt
+```
+
+Run:
+
+```bash
+yara jpeg-format.yar negative.txt
+```
+
+Expected result: no match.
+
+A detection without a negative test is incomplete.
+
+## Step 6 — Test rule fragility
+
+Ask what happens if:
+
+- metadata strings change;
+- one optional string disappears;
+- the file is recompressed;
+- the same byte sequence appears in an unrelated file type;
+- the attacker changes a literal string but behavior is unchanged.
+
+This is why strong YARA engineering favors stable structural/content characteristics over highly specific one-off strings when possible.
+
+## Step 7 — Connect packet and file evidence
+
+Document provenance:
+
+```text
+PCAP: http_with_jpegs.pcap
+TCP/HTTP stream: <stream number>
+Exported object: <filename>
+SHA-256: <hash>
+YARA rule: Lab_JPEG_Structure
+YARA result: match / no match
+```
+
+The PCAP proves the file traversed the observed network session. YARA proves the exported bytes matched the rule. They answer different questions.
+
+## Production-quality YARA metadata
+
+A mature rule commonly documents:
+
+```text
+rule name
+purpose
+owner/author
+reference
+sample hashes used for testing
+date/version
+confidence
+ATT&CK or malware-family context when justified
+known false positives
+```
+
+Do not put unsupported attribution into rule metadata merely because a sample came from an incident associated with a threat actor.
+
+## YARA versus Suricata
+
+| Question | YARA | Suricata |
+| --- | --- | --- |
+| Does a file contain these bytes/strings? | Excellent fit | Sometimes via file/application buffers, but different model |
+| Did a network request contain this protocol field? | Not directly | Excellent fit |
+| Scan extracted artifact at rest | Excellent fit | Not primary use |
+| Match flow direction/state | No | Yes |
+| Use packet/application parser context | No | Yes |
+
+## Optional advanced work
+
+- add `hash` or `pe` module conditions for an appropriate benign PE fixture;
+- compare `ascii`, `wide`, and `nocase` behavior;
+- write two rules: one highly specific, one generalized, then explain the false-positive/false-negative tradeoff;
+- test a rule set with `yara -r` against a directory of mixed benign fixtures.
+
+## Troubleshooting
+
+| Symptom | Likely cause | Check |
+| --- | --- | --- |
+| Syntax error | Invalid rule grammar | Braces, quotes, identifiers, condition |
+| Expected file does not match | Pattern/offset assumption wrong | `xxd`, `strings`, hex editor |
+| Too many files match | Condition too broad | Require more independent evidence |
+| String appears but rule fails | Modifier/encoding issue | `ascii`, `wide`, `nocase`, offset |
+| Rule works on one sample only | Overfit | Add diverse positive fixtures |
+
+## Official references
+
+- [Writing YARA rules](https://yara.readthedocs.io/en/latest/writingrules.html)
+- [YARA modules](https://yara.readthedocs.io/en/latest/modules.html)
+
+<CardGroup cols={2}>
+  <Card title="Next: Validation & Tuning" href="/training/detection-engineering/validation" icon="flask">Turn rules into repeatable test packages.</Card>
+  <Card title="Previous: Suricata" href="/training/detection-engineering/suricata" icon="arrow-left">Return to protocol-aware network signatures.</Card>
+</CardGroup>

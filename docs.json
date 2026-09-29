@@ -118,7 +118,8 @@
               "training/detection-engineering/foundations",
               "training/detection-engineering/esql",
               "training/detection-engineering/kql",
-              "training/detection-engineering/suricata"
+              "training/detection-engineering/suricata",
+              "training/detection-engineering/yara"
             ]
           },
           {
