@@ -1,0 +1,86 @@
+---
+title: "Network Security: Training Resources and Career Path"
+sidebarTitle: "Network Security"
+description: "Learn network security with curated training resources and hands-on labs covering packet analysis, network forensics, detection telemetry, and defensive engineering."
+---
+
+Network security forms the backbone of cybersecurity operations. Build from protocol fundamentals into packet analysis, network forensics, telemetry correlation, and detection engineering.
+
+## Key skills to learn
+
+- **TCP/IP fundamentals** — addressing, subnetting, routing, TCP/UDP, DNS, HTTP, TLS, and common protocol behavior.
+- **Packet analysis** — PCAP structure, Wireshark display filters, endpoints, conversations, streams, and protocol fields.
+- **Network forensics** — reconstruct activity, correlate evidence, extract artifacts safely, and document limitations.
+- **Firewall and segmentation concepts** — stateful filtering, rule ordering, VLANs, DMZs, and least-privilege routing.
+- **IDS/IPS analysis** — interpret and tune Suricata or Snort alerts and connect signatures to packet evidence.
+- **Enterprise telemetry correlation** — move between Security Onion, Arkime, Suricata, and SIEM evidence.
+
+## Recommended learning order
+
+<Steps>
+  <Step title="Build networking foundations">Learn addressing, routing, TCP/UDP, DNS, HTTP, and TLS before interpreting complex captures.</Step>
+  <Step title="Learn packet analysis">Use Wireshark to identify endpoints, protocols, conversations, DNS activity, and application metadata.</Step>
+  <Step title="Practice network forensics">Investigate DNS, web sessions, periodic communications, transferred artifacts, and timelines.</Step>
+  <Step title="Correlate defensive telemetry">Connect packet observations to Suricata/Snort alerts, Security Onion, Arkime, and indexed SIEM data.</Step>
+  <Step title="Engineer and validate detections">Use packet evidence to determine what a network detection can reliably observe and test it against authorized lab traffic.</Step>
+</Steps>
+
+## Hands-on Network Forensics course
+
+<Card title="Network Forensics Learning Path" href="/training/network-forensics/index" icon="network-wired">
+Progress through seven applied labs from Wireshark foundations to a Security Onion and Arkime-correlated capstone investigation.
+</Card>
+
+| Lab | Capability |
+| --- | --- |
+| 1. Packet Analysis Foundations | Scope PCAPs, filter traffic, inspect endpoints and conversations, and reconstruct streams. |
+| 2. DNS Investigation | Reconstruct name resolution and correlate DNS with subsequent network activity. |
+| 3. HTTP, TLS, and Web Traffic | Analyze plaintext transactions and encrypted-session metadata. |
+| 4. Beaconing Analysis | Characterize periodic communication and test competing explanations. |
+| 5. File and Artifact Analysis | Export authorized objects, hash them, preserve provenance, and bridge into IOC/YARA workflows. |
+| 6. Security Onion + Arkime | Pivot from alerts and sessions to packet evidence and correlate Suricata telemetry. |
+| 7. Capstone | Conduct and report an end-to-end investigation with minimal guidance. |
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card title="Wireshark Documentation" href="https://www.wireshark.org/docs/" icon="magnifying-glass">Official Wireshark documentation and filter references.</Card>
+  <Card title="Security Onion Documentation" href="https://docs.securityonion.net/" icon="shield">Integrated alert, hunt, packet capture, and Wireshark guidance.</Card>
+  <Card title="Arkime" href="https://arkime.com/" icon="database">Full-packet-capture indexing and session search.</Card>
+  <Card title="Suricata Documentation" href="https://docs.suricata.io/" icon="shield-halved">IDS/IPS rules, protocol telemetry, EVE JSON, and PCAP processing.</Card>
+</CardGroup>
+
+## Network analysis practice from Ocho Training
+
+| Resource | Learning objective |
+| --- | --- |
+| [TryHackMe Network Security and Traffic Analysis](https://tryhackme.com/module/network-security-and-traffic-analysis) | Work through guided traffic-analysis tasks and explain the evidence behind each conclusion. |
+| [Security Blue Team: Introduction to Network Analysis](https://www.securityblue.team/courses/introduction-to-network-analysis) | Practice core packet analysis and investigative workflow. |
+| [Hands-On Network Forensics lab files](https://github.com/nipunjaswal/networkforensics) | Analyze sample artifacts and compare findings with structured exercises. |
+| [picoCTF](https://picoctf.org/) | Practice beginner-friendly network and forensics challenges. |
+
+For broader enterprise investigation tooling, continue with [SIEM and Tools](/domains/siem-and-tools).
+
+## Practice progression
+
+```text
+Understand protocol behavior
+        ↓
+Obtain authorized traffic
+        ↓
+Filter and scope
+        ↓
+Reconstruct conversations
+        ↓
+Explain packet evidence
+        ↓
+Correlate IDS/session/SIEM telemetry
+        ↓
+Test competing explanations
+        ↓
+Build or validate a detection
+```
+
+<Tip>
+Begin with traffic deliberately generated in an authorized lab. Knowing the expected behavior gives you immediate feedback about whether your packet interpretation is correct.
+</Tip>
