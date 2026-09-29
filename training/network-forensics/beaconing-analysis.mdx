@@ -4,3 +4,103 @@ sidebarTitle: "Lab 4: Beaconing"
 description: "Characterize periodic network communication and distinguish observations from conclusions."
 icon: "wave-square"
 ---
+
+# Lab 4 — Beaconing analysis
+
+Beaconing is repeated communication from one host to another at roughly regular intervals. It can appear in command-and-control traffic, but it also occurs in legitimate software such as monitoring agents, update services, cloud clients, and health checks.
+
+## Objectives
+
+You will learn to:
+
+- identify repeated connections to the same destination;
+- measure intervals between connections;
+- compare timing, ports, byte counts, and session characteristics;
+- distinguish regularity from evidence of malicious intent;
+- document alternative explanations.
+
+## Step 1 — Identify repeated destinations
+
+Use **Statistics → Conversations** and **Endpoints** to find hosts with repeated communication.
+
+Then filter on a pair:
+
+```text
+ip.addr == 192.0.2.25 && ip.addr == 198.51.100.10
+```
+
+For new TCP connection attempts:
+
+```text
+ip.src == 192.0.2.25 && ip.dst == 198.51.100.10 && tcp.flags.syn == 1 && tcp.flags.ack == 0
+```
+
+## Step 2 — Measure timing
+
+Add or inspect time columns and record the timestamps of repeated connection starts.
+
+Example:
+
+```text
+10:00:00
+10:01:00
+10:02:01
+10:03:00
+10:04:02
+```
+
+Calculate approximate intervals:
+
+```text
+60s, 61s, 59s, 62s
+```
+
+The sequence is periodic, but not perfectly fixed. This variation is sometimes called **jitter**.
+
+## Step 3 — Compare session characteristics
+
+Ask:
+
+- Is the destination constant?
+- Is the destination port constant?
+- Are connection durations similar?
+- Are packet counts or byte counts similar?
+- Does DNS resolution precede the connection?
+- Does the host communicate only when a user is active?
+
+## Step 4 — Reproduce with TShark
+
+```bash
+tshark -r lab.pcapng \
+  -Y "ip.src == 192.0.2.25 && ip.dst == 198.51.100.10 && tcp.flags.syn == 1 && tcp.flags.ack == 0" \
+  -T fields \
+  -e frame.time_epoch \
+  -e ip.src \
+  -e ip.dst \
+  -e tcp.dstport
+```
+
+You can then calculate inter-arrival time in Python, a spreadsheet, or another analysis tool.
+
+## Step 5 — Test competing explanations
+
+A good analyst asks what else could create the pattern.
+
+| Observation | Possible benign explanation | Possible concern |
+| --- | --- | --- |
+| Regular HTTPS connection | update/monitoring agent | periodic C2 check-in |
+| Same destination and port | API polling | fixed C2 infrastructure |
+| Small repeated payloads | health check | command polling |
+| Consistent timing | scheduler | automated beacon |
+
+Do not promote a pattern to a conclusion without corroborating evidence.
+
+## Validation
+
+Produce a table with at least five repeated connection timestamps, calculated intervals, destination, port, and one benign alternative explanation.
+
+## Optional advanced work
+
+Compare beacon timing against indexed telemetry from Elasticsearch/OpenSearch, Arkime session duration/bytes, or Suricata flow records. Translate the analytical question into each platform's own query language instead of copying Wireshark filters literally.
+
+<Card title="Next: File and Artifact Analysis" href="/training/network-forensics/artifact-analysis" icon="arrow-right">Move from communication patterns to files and transferable evidence.</Card>
