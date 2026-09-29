@@ -9,17 +9,24 @@ Use these resources to build the operating-system fluency needed for log analysi
 
 ## Windows and Active Directory
 
-| Resource | Focus | Practice outcome |
-|---|---|---|
-| [Populating Active Directory](https://petri.com/populate-active-directory-with-test-user-accounts/) | Create synthetic test users in a lab directory | Build a repeatable AD dataset for authentication and detection exercises. |
-| [Windows Server learning on Microsoft Learn](https://techcommunity.microsoft.com/blog/itopstalkblog/latest-windows-server-training-on-ms-learn/2093132) | Server administration and identity fundamentals | Configure a Windows Server lab and document key roles. |
-| [Under the Wire](https://underthewire.tech/) | PowerShell wargames | Use commands and pipelines to solve progressively harder tasks. |
+| Resource | Category | Level | Access | Focus | Practice outcome |
+| --- | --- | --- | --- | --- | --- |
+| [Populating Active Directory](https://petri.com/populate-active-directory-with-test-user-accounts/) | Windows / Active Directory | Intermediate | Free article | Create synthetic test users in a lab directory | Build a repeatable AD dataset for authentication and detection exercises. |
+| [Latest Windows Server training on Microsoft Learn](https://techcommunity.microsoft.com/blog/itopstalkblog/latest-windows-server-training-on-ms-learn/2093132) | Windows Server | Beginner → Intermediate | Free | Microsoft’s 2021 roundup of Windows Server 2019 learning modules | Use it as a starting index, then follow the current Microsoft Learn paths below. |
+| [Windows Server deployment, configuration, and administration](https://learn.microsoft.com/en-us/training/paths/windows-server-deployment-configuration-administration/) | Windows Server | Intermediate | Free | Deployment, secure administration, Windows Admin Center, Server Manager, PowerShell remoting | Build and document a securely administered Windows Server lab. |
+| [Secure Windows Server infrastructure](https://learn.microsoft.com/en-us/training/paths/secure-windows-server-infrastructure/) | Windows Server Security | Intermediate | Free | Security baselines, LAPS, PAWs, AD security, Defender, audit policy | Harden a Windows Server/AD lab and record the controls you applied. |
+| [Under the Wire](https://underthewire.tech/) | PowerShell | Beginner → Intermediate | Free | PowerShell wargames | Use commands and pipelines to solve progressively harder tasks. |
+
+<Note>
+  The TechCommunity article is still useful as an index, but it was published in 2021 and focuses on Windows Server 2019. Prefer the current Microsoft Learn paths for hands-on study because they are actively maintained and now include Windows Server 2025 content.
+</Note>
 
 ## Linux and shell
 
-| Resource | Focus | Practice outcome |
-|---|---|---|
-| [OverTheWire wargames](https://overthewire.org/wargames/) | Linux command line, permissions, text processing | Complete Bandit and keep a command journal. |
-| [Linux roadmap](https://roadmap.sh/linux) | A map of core Linux concepts | Identify gaps in processes, networking, services, and permissions. |
+| Resource | Category | Level | Access | Focus | Practice outcome |
+| --- | --- | --- | --- | --- | --- |
+| [OverTheWire wargames](https://overthewire.org/wargames/) | Linux | Beginner → Intermediate | Free | Linux command line, permissions, text processing | Complete Bandit and keep a command journal. |
+| [Linux roadmap](https://roadmap.sh/linux) | Linux | Beginner → Advanced | Free | A map of core Linux concepts | Identify gaps in processes, networking, services, and permissions. |
+| [edX / Linux Foundation: Introduction to Linux](https://www.edx.org/course/introduction-linux-linuxfoundationx-lfs101x-2) | Linux | Beginner | Audit available; certificate paid | Linux distributions, command line, processes, networking, shell scripting, local security | Build Linux fluency before moving into security tooling and server administration. |
 
 <Note>Use disposable VMs and synthetic accounts for the Active Directory exercises.</Note>
