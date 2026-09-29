@@ -1,0 +1,250 @@
+---
+title: "Lab 7: Network Forensics Capstone"
+description: "Conduct an end-to-end packet investigation and produce a reproducible evidence-based analyst report."
+icon: "clipboard-check"
+---
+
+# Lab 7 — Network Forensics Capstone
+
+The capstone removes most of the step-by-step guidance. Your task is to take an investigative seed, determine what the network evidence establishes, correlate supporting telemetry where available, and communicate the result clearly.
+
+<Info>
+**Prerequisite:** Labs 1–6.
+
+**Outcome:** Independently execute and document a defensible network-forensics investigation using Wireshark/TShark and, when available, Security Onion, Arkime, Suricata, and indexed telemetry.
+</Info>
+
+## Scenario
+
+You receive an alert or analyst lead indicating that a lab workstation may have communicated repeatedly with an external system and downloaded a file.
+
+You are given one or more of:
+
+```text
+host IP
+external IP/domain
+approximate timestamp
+Suricata alert
+PCAP
+Security Onion/Arkime access
+```
+
+Your job is **not** to prove the initial hypothesis. Your job is to determine what the available evidence supports.
+
+## Rules of engagement
+
+- Use only authorized training data.
+- Do not execute extracted unknown files.
+- Preserve original PCAPs and work from copies where appropriate.
+- Record filters/commands so another analyst can reproduce your work.
+- Distinguish observed facts from analytical interpretation.
+- State when capture scope or encryption prevents a conclusion.
+
+## Phase 1 — Scope
+
+Document:
+
+```text
+Investigation question:
+Known indicators:
+Capture/telemetry start:
+Capture/telemetry end:
+Systems in scope:
+Evidence sources available:
+```
+
+## Phase 2 — Triage
+
+Without chasing individual packets immediately, identify:
+
+- protocol distribution;
+- primary endpoints;
+- relevant conversations;
+- DNS activity;
+- repeated destinations;
+- notable Suricata alerts, if available.
+
+Write down why you selected the sessions you will inspect deeply.
+
+## Phase 3 — Reconstruct activity
+
+Build a chronological timeline. Depending on the data, it may include:
+
+```text
+DNS lookup
+TCP/UDP communication
+TLS handshake
+HTTP request/response
+repeated callback pattern
+object transfer
+IDS alert
+connection termination
+```
+
+Every timeline entry should point to supporting evidence such as packet number, stream, session, alert, or indexed event.
+
+## Phase 4 — Analyze repeated communication
+
+If repeated traffic exists, characterize:
+
+- event count;
+- interval pattern;
+- destination consistency;
+- ports/protocols;
+- bytes/packets;
+- connection success;
+- associated DNS;
+- benign explanations;
+- suspicious explanations.
+
+Do not label periodic traffic as C2 solely because it repeats.
+
+## Phase 5 — Handle artifacts
+
+If an authorized plaintext transfer is present:
+
+1. identify the transaction;
+2. export the supported object safely;
+3. calculate SHA-256;
+4. record source/destination, timestamp, URI/context, packet/stream;
+5. do not execute it;
+6. note whether exact-hash, YARA, or network-detection follow-up would be appropriate.
+
+If traffic is encrypted and you cannot recover the object, explicitly state that limitation.
+
+## Phase 6 — Correlate telemetry
+
+Where available, compare packet findings with:
+
+- Suricata EVE/alerts;
+- Arkime sessions;
+- Security Onion Hunt/Alerts;
+- Elasticsearch/Kibana or OpenSearch data;
+- endpoint telemetry;
+- OpenCTI or another approved intelligence source.
+
+Do not let reputation data replace packet evidence. Intelligence should enrich the investigation, not retroactively change what the capture contains.
+
+## Phase 7 — Reproduce key findings with TShark
+
+At least two important findings should be reproducible from the command line.
+
+Example patterns:
+
+```bash
+tshark -r investigation.pcapng -Y "dns" -T fields -e frame.time_epoch -e ip.src -e dns.qry.name
+```
+
+```bash
+tshark -r investigation.pcapng -Y "tcp.flags.syn == 1 && tcp.flags.ack == 0" -T fields -e frame.time_epoch -e ip.src -e ip.dst -e tcp.dstport
+```
+
+Adapt filters to the actual evidence.
+
+## Required report
+
+### Executive summary
+
+Three to six sentences explaining what was observed, the significance, and the most important limitation.
+
+### Scope
+
+```text
+Time range:
+Systems:
+Evidence sources:
+Initial question:
+```
+
+### Timeline
+
+| Time | Evidence source | Observation | Reference |
+| --- | --- | --- | --- |
+| ... | PCAP | ... | packet/stream ... |
+
+### Findings
+
+For each finding:
+
+```text
+Finding:
+Evidence:
+Interpretation:
+Alternative explanation:
+Confidence:
+Limitation:
+```
+
+### Indicators/artifacts
+
+| Type | Value | Context |
+| --- | --- | --- |
+| Domain | ... | queried by ... |
+| IP | ... | contacted by ... |
+| SHA-256 | ... | exported from authorized HTTP transfer |
+
+### Recommended next steps
+
+Recommend evidence-driven pivots such as endpoint process review, broader time-range search, additional host scoping, detection validation, or intelligence enrichment.
+
+## Evaluation rubric
+
+| Area | Successful performance |
+| --- | --- |
+| Scope | Clearly defines time, systems, question, and evidence sources. |
+| Packet analysis | Uses appropriate filters and reconstructs relevant conversations. |
+| Protocol reasoning | Correctly distinguishes DNS, TCP, HTTP/TLS, and other observed protocols. |
+| Evidence discipline | Separates direct observations from interpretation. |
+| Reproducibility | Records packet/session references and working filters/commands. |
+| Correlation | Uses other telemetry to add context without conflating data sources. |
+| Safety | Handles extracted artifacts without unsafe execution. |
+| Communication | Produces a concise, understandable report with limitations. |
+
+## Optional advanced challenge — detection handoff
+
+Turn one capstone observation into a detection-engineering requirement rather than immediately writing a rule.
+
+Document:
+
+```text
+Behavior to detect:
+Required telemetry:
+Grouping key:
+Time window:
+Threshold/state:
+Expected benign matches:
+Triage fields:
+Validation dataset:
+Failure modes:
+```
+
+Then decide whether the best implementation belongs in Suricata/Snort, a SIEM query, a behavioral analytic, YARA, or another control.
+
+## Course completion
+
+You have completed the core Network Forensics path when you can independently move through:
+
+```text
+Investigative seed
+       ↓
+Scope evidence
+       ↓
+Triage traffic
+       ↓
+Reconstruct sessions
+       ↓
+Build timeline
+       ↓
+Extract/correlate artifacts
+       ↓
+Test competing explanations
+       ↓
+Document findings + limitations
+       ↓
+Recommend next defensive action
+```
+
+<CardGroup cols={2}>
+  <Card title="Previous: Security Onion + Arkime" icon="arrow-left" href="/training/network-forensics/security-onion-arkime" />
+  <Card title="Network Forensics Course" icon="network-wired" href="/training/network-forensics/index" />
+</CardGroup>
