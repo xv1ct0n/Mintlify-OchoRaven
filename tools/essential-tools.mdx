@@ -1,0 +1,64 @@
+---
+title: "Essential Cybersecurity Tools Every Practitioner Needs"
+sidebarTitle: "Essential Tools"
+description: "A curated list of must-know cybersecurity tools across reconnaissance, exploitation, forensics, and defense — with download links and use cases."
+---
+
+In cybersecurity, theoretical knowledge and practical tooling go hand in hand. You can understand how a buffer overflow works conceptually, but until you have used Metasploit to deliver a payload or Wireshark to watch malicious traffic cross a wire, that knowledge stays abstract. The tools in this guide are the industry standard across offensive and defensive disciplines — the ones you will encounter in job postings, certification exams, and real engagements. Invest time in learning not just what each tool does, but _why_ it works the way it does, and your skill ceiling will be dramatically higher than someone who only memorizes commands.
+
+<Tip>
+  **Kali Linux** and **Parrot OS** ship with the vast majority of these tools pre-installed and ready to use. Spinning up either distribution in a VM gives you an instant, fully equipped security lab without manually tracking down and configuring individual packages — the fastest way to go from zero to operational.
+</Tip>
+
+<Note>
+  Many of the tools listed here are **dual-use**: they were designed for legitimate security research and testing, but can be misused. Understanding how offensive tools work makes you a significantly more effective defender — you cannot detect or stop attacks you do not understand. Always use these tools only on systems you own or have explicit written authorization to test.
+</Note>
+
+## Tools by Category
+
+<Tabs>
+  <Tab title="Reconnaissance">
+    Reconnaissance tools help you map an attack surface before touching a target. Strong recon reduces wasted effort and surfaces the exact entry points worth pursuing.
+
+    | Tool | Purpose | Platform | License |
+    | --- | --- | --- | --- |
+    | [nmap](https://nmap.org) | Port scanning, service/version detection, and OS fingerprinting | All | Open Source (GPLv2) |
+    | [Shodan](https://shodan.io) | Search engine for internet-exposed devices, services, and banners | Web / CLI | Free tier + Paid |
+    | [theHarvester](https://github.com/laramies/theHarvester) | Email address, subdomain, and domain OSINT aggregation | All | Open Source (GPLv2) |
+    | [Maltego](https://maltego.com) | Visual OSINT and link-analysis platform for mapping relationships | All | Free (Community) + Paid |
+    | [Recon-ng](https://github.com/lanmaster53/recon-ng) | Modular web reconnaissance framework with plugin-based data collection | All | Open Source (GPLv3) |
+  </Tab>
+  <Tab title="Exploitation">
+    Exploitation tools turn discovered vulnerabilities into demonstrated access. Knowing this layer deeply also teaches you exactly what defenders must detect and block.
+
+    | Tool | Purpose | Platform | License |
+    | --- | --- | --- | --- |
+    | [Metasploit Framework](https://metasploit.com) | Comprehensive exploitation platform with a library of public exploits and payloads | All | Open Source (BSD) + Pro |
+    | [Burp Suite](https://portswigger.net/burp) | Web application proxy for intercepting, modifying, and replaying HTTP/S traffic | All | Free (Community) + Paid |
+    | [SQLmap](https://sqlmap.org) | Automated detection and exploitation of SQL injection vulnerabilities | All | Open Source (GPLv2) |
+    | [Hydra](https://github.com/vanhauser-thc/thc-hydra) | Fast, parallelized network login brute-forcing across dozens of protocols | All | Open Source (AGPL) |
+    | [Impacket](https://github.com/fortra/impacket) | Python library and collection of scripts for Windows protocol exploitation (SMB, Kerberos, DCOM) | All | Open Source (Apache 2.0) |
+  </Tab>
+  <Tab title="Post-Exploitation">
+    Post-exploitation tools help you demonstrate the full depth of impact after initial access — privilege escalation, credential access, and lateral movement across a network.
+
+    | Tool | Purpose | Platform | License |
+    | --- | --- | --- | --- |
+    | [BloodHound](https://github.com/BloodHoundAD/BloodHound) | Active Directory attack path enumeration and visualization | Windows / Linux | Open Source (GPLv3) |
+    | [Mimikatz](https://github.com/gentilkiwi/mimikatz) | Windows credential extraction from memory, NTLM hashes, and Kerberos tickets | Windows | Open Source (CC BY 4.0) |
+    | [PowerSploit](https://github.com/PowerShellMafia/PowerSploit) | PowerShell-based post-exploitation framework for Windows environments | Windows | Open Source (BSD) |
+    | [LinPEAS / WinPEAS](https://github.com/carlospolop/PEASS-ng) | Automated local privilege escalation enumeration scripts | Linux / Windows | Open Source (MIT) |
+    | [Empire](https://github.com/BC-SECURITY/Empire) | PowerShell and Python command-and-control (C2) framework | All | Open Source (BSD) |
+  </Tab>
+  <Tab title="Defensive/Analysis">
+    Defensive and forensic tools form the backbone of blue team work — from capturing and dissecting traffic to analyzing malware and investigating compromised disk images.
+
+    | Tool | Purpose | Platform | License |
+    | --- | --- | --- | --- |
+    | [Wireshark](https://wireshark.org) | Deep packet inspection and network traffic analysis | All | Open Source (GPLv2) |
+    | [Volatility](https://volatilityfoundation.org) | Memory forensics framework for analyzing RAM dumps and extracting artifacts | All | Open Source (GPLv2) |
+    | [Autopsy](https://sleuthkit.org/autopsy/) | GUI-based digital forensics platform for disk image investigation | All | Open Source (Apache 2.0) |
+    | [YARA](https://virustotal.github.io/yara/) | Pattern-matching engine for identifying and classifying malware samples | All | Open Source (BSD) |
+    | [Zeek](https://zeek.org) | Network security monitor that generates structured logs from live or captured traffic | All | Open Source (BSD) |
+  </Tab>
+</Tabs>

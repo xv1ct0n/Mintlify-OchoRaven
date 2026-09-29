@@ -1,0 +1,95 @@
+---
+title: "Vulnerable Machines and Sandboxes for Hacking Practice"
+sidebarTitle: "Vulnerable Machines"
+description: "Practice ethical hacking on intentionally vulnerable machines and sandboxed environments — including Hack The Box, VulnHub, TryHackMe, and OWASP apps."
+---
+
+Intentionally vulnerable machines and sandboxed applications are the closest thing to real-world hacking experience you can get without crossing legal or ethical lines. These environments are purpose-built to be broken — they run outdated software, misconfigured services, weak credentials, and known CVEs so you can practice enumeration, exploitation, and post-exploitation in a consequence-free setting. Whether you prefer cloud-hosted platforms that require no local setup or downloadable VMs you can run entirely offline, there is a vulnerable environment suited to every skill level, operating system, and internet situation.
+
+## Online Platforms (No Setup Required)
+
+These platforms host vulnerable machines in the cloud so you can connect via browser or VPN and start hacking within minutes — no local virtualization software needed.
+
+<CardGroup cols={2}>
+  <Card title="Hack The Box" icon="cube" href="https://hackthebox.com">
+    Hack The Box is the benchmark for realistic penetration testing practice. Retired machines are free for all users, and an active subscription unlocks currently live machines and Pro Labs that simulate full enterprise environments — Active Directory forests, cloud misconfigurations, and multi-pivot network chains.
+  </Card>
+
+  <Card title="TryHackMe" icon="shield" href="https://tryhackme.com">
+    TryHackMe wraps vulnerable machines in guided, narrative-driven rooms that explain concepts as you exploit them. It's the friendliest on-ramp for absolute beginners and scales smoothly through intermediate topics like privilege escalation, web exploitation, and network pivoting.
+  </Card>
+
+  <Card title="VulnHub" icon="download" href="https://vulnhub.com">
+    VulnHub hosts a massive library of community-contributed vulnerable VM images you download and run locally. With hundreds of machines spanning beginner to expert difficulty, it's an excellent resource for offline practice — no subscription, no VPN, no internet required once downloaded.
+  </Card>
+
+  <Card title="HackThisSite" icon="terminal" href="https://hackthissite.org">
+    One of the longest-running free hacking challenge sites on the internet. HackThisSite offers browser-based web challenges, realistic missions, and programming challenges backed by an active community forum and IRC channel.
+  </Card>
+</CardGroup>
+
+## Downloadable Vulnerable Apps
+
+These applications are designed to run locally inside your home lab. They cover the most important categories of web application vulnerabilities and are used in security courses, certifications, and university curricula worldwide.
+
+<CardGroup cols={2}>
+  <Card title="DVWA" icon="spider" href="https://dvwa.co.uk">
+    The Damn Vulnerable Web Application is a PHP/MySQL app with adjustable difficulty levels — low, medium, high, and impossible — across SQL injection, XSS, CSRF, file upload, and more. It runs easily in Docker and is the most widely referenced beginner web security training target.
+  </Card>
+
+  <Card title="OWASP Juice Shop" icon="store" href="https://owasp.org/www-project-juice-shop/">
+    A modern, intentionally insecure Node.js e-commerce application that covers the entire OWASP Top 10 and dozens of additional challenge categories. Juice Shop includes a built-in score board that tracks your progress and hints at unsolved challenges, making it ideal for self-directed learning.
+  </Card>
+
+  <Card title="Metasploitable 2" icon="server" href="https://vulnhub.com">
+    The classic intentionally vulnerable Ubuntu Linux server image. Metasploitable 2 exposes a wide range of network services with known vulnerabilities — FTP, Samba, MySQL, VSFTPD, and more — making it the canonical first target for learning Metasploit and manual exploitation techniques.
+  </Card>
+
+  <Card title="WebGoat" icon="graduation-cap" href="https://owasp.org/www-project-webgoat/">
+    OWASP WebGoat is an interactive, lesson-based Java application that teaches web vulnerability concepts by walking you through attack and defense exercises step by step. Each lesson explains the vulnerability, lets you exploit it, and then discusses how to remediate it in real code.
+  </Card>
+</CardGroup>
+
+## Setting Up OWASP Juice Shop Locally
+
+OWASP Juice Shop is one of the best first targets for web application security practice. With Docker installed, you can have a fully functional vulnerable app running in under two minutes.
+
+<Steps>
+  <Step title="Install Docker">
+    If you don't already have Docker installed, download Docker Desktop from [docker.com](https://docker.com) and complete the installation for your operating system. Verify the installation by running `docker --version` in your terminal.
+  </Step>
+  <Step title="Pull and Run Juice Shop">
+    Run the following commands to pull the official Juice Shop image and start the container:
+
+    ```bash
+    # Pull and run OWASP Juice Shop
+    docker pull bkimminich/juice-shop
+    docker run -d -p 3000:3000 bkimminich/juice-shop
+    # Access at http://localhost:3000
+    ```
+
+    The `-d` flag runs the container in the background, and `-p 3000:3000` maps port 3000 on your host to port 3000 in the container.
+  </Step>
+  <Step title="Open the Application">
+    Navigate to [http://localhost:3000](http://localhost:3000) in your browser. You'll be greeted by the Juice Shop storefront. Click the score board icon (or find the hidden score board challenge first!) to see the full list of available challenges and track your progress.
+  </Step>
+  <Step title="Stop the Container When Done">
+    When you finish a session, stop the container to free up resources:
+
+    ```bash
+    # List running containers to find the Juice Shop container ID
+    docker ps
+    
+    # Stop the container (replace <container_id> with the actual ID)
+    docker stop <container_id>
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  **Never expose vulnerable machines to the public internet.** Applications like DVWA, Juice Shop, Metasploitable, and WebGoat are deliberately full of critical security holes. If you bind them to a public IP or expose them through port forwarding, anyone on the internet can access and compromise them — and any traffic they route through your network. Always run vulnerable apps on a host-only or internal virtual network, or behind a VPN. Double-check your router's port forwarding rules and your VM's network adapter settings before starting a lab session.
+</Warning>
+
+<Tip>
+  **Give yourself at least 30 minutes of genuine effort before looking up answers.** It's tempting to reach for a YouTube walkthrough the moment you feel stuck, but the struggle itself is where the learning happens. Set a timer, take notes on everything you've tried, and exhaust your own ideas first. When you do watch a walkthrough, you'll understand exactly why the solution works — rather than just copying steps you don't fully grasp.
+</Tip>
