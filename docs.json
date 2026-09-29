@@ -194,6 +194,6 @@
     "library": "lucide"
   },
   "background": {
-    "decoration": "gradient"
+    "decoration": "grid"
   }
 }
