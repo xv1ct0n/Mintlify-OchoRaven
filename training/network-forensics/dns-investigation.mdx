@@ -1,0 +1,209 @@
+---
+title: "Lab 2: DNS Investigation"
+description: "Reconstruct DNS activity in Wireshark and correlate name resolution with subsequent network behavior."
+icon: "globe"
+---
+
+# Lab 2 — DNS Investigation
+
+DNS often provides the naming context that raw IP connections lack. This lab teaches you to reconstruct DNS activity, interpret common record types and response codes, identify useful patterns, and test whether name resolution is followed by network communication.
+
+<Info>
+**Prerequisite:** Complete [Packet Analysis Foundations](/training/network-forensics/wireshark) or be comfortable with Wireshark display filters, endpoints, conversations, and packet details.
+
+**Outcome:** Given a host and time range, identify its DNS queries and responses, extract resolved addresses, distinguish failed from successful lookups, and correlate a resolution with later traffic without claiming that DNS alone proves a connection.
+</Info>
+
+## Concepts
+
+| Term | Meaning |
+| --- | --- |
+| Resolver | DNS server a client asks to resolve names. |
+| Query | Client request for a DNS record. |
+| Response | DNS server answer to a query. |
+| A / AAAA | Records mapping a name to IPv4 / IPv6 addresses. |
+| CNAME | Alias pointing one name to another. |
+| NXDOMAIN | Response indicating the queried name does not exist. |
+| TTL | How long a DNS answer may be cached. |
+
+## Lab setup
+
+Use an authorized PCAP containing DNS traffic or create a benign capture while running lookups for domains you intentionally choose.
+
+Example generation on a lab workstation:
+
+```bash
+nslookup example.com
+nslookup www.iana.org
+```
+
+Capture only traffic you are authorized to observe.
+
+## Step 1 — Establish the client and resolver
+
+Start broadly:
+
+```text
+dns
+```
+
+Then isolate queries:
+
+```text
+dns.flags.response == 0
+```
+
+Select a query and inspect the IP and DNS layers. Record the client, resolver, queried name, record type, and timestamp.
+
+## Step 2 — Isolate one client
+
+```text
+ip.addr == 192.0.2.25 && dns
+```
+
+Replace the example IP with a client from your capture.
+
+Questions:
+
+- Which names does the host query?
+- Which resolver receives the queries?
+- Does the host use more than one resolver?
+- Are queries repeated?
+
+## Step 3 — Separate queries and responses
+
+Queries:
+
+```text
+dns.flags.response == 0
+```
+
+Responses:
+
+```text
+dns.flags.response == 1
+```
+
+Inspect the DNS transaction identifier and request/response relationship in Packet Details. Wireshark may expose fields linking the response to its request when both are present.
+
+## Step 4 — Investigate a domain
+
+For a known training domain:
+
+```text
+dns.qry.name == "example.com"
+```
+
+If your capture contains subdomains and you need a broader match, use the field reference for your Wireshark version rather than assuming a string operator behaves the same across releases.
+
+Record:
+
+```text
+Query name:
+Query type:
+Response code:
+Returned address(es):
+Query time:
+Response time:
+```
+
+## Step 5 — Look for failed resolution
+
+DNS response codes can help identify unsuccessful lookups. In the Packet Details pane, inspect the response code and use the displayed field to build a filter via **Apply as Filter**.
+
+A high number of failed lookups can have many causes: typos, service discovery, software behavior, misconfiguration, or intentionally generated names. Treat it as a lead, not a verdict.
+
+## Step 6 — Pivot from DNS to the returned IP
+
+Suppose the answer returned `198.51.100.10`. Clear the DNS-only filter and search:
+
+```text
+ip.addr == 198.51.100.10
+```
+
+Then narrow to the client:
+
+```text
+ip.addr == 192.0.2.25 && ip.addr == 198.51.100.10
+```
+
+Now answer a different question: **did the client exchange packets with the resolved address?**
+
+<Warning>
+A DNS response and a later connection may be related, but temporal proximity alone does not prove causation. Document the sequence you observed and any alternative explanations.
+</Warning>
+
+## Step 7 — Extract DNS with TShark
+
+```bash
+tshark -r lab.pcapng \
+  -Y "dns.flags.response == 0" \
+  -T fields \
+  -e frame.time_epoch \
+  -e ip.src \
+  -e ip.dst \
+  -e dns.qry.name
+```
+
+This converts exploratory GUI analysis into repeatable extraction.
+
+## Expected observations
+
+By the end of the lab you should have at least one chain like:
+
+```text
+Client
+  ↓ query
+DNS resolver
+  ↓ answer
+Hostname → IP address
+  ↓ later observation
+Client ↔ returned IP
+```
+
+The last relationship must be validated separately in the packet capture.
+
+## Security Onion / SIEM bridge
+
+DNS telemetry may already be indexed in Security Onion, Elasticsearch, or OpenSearch. Use indexed data to search across larger time ranges, then retrieve packet data for detailed validation when full packet capture is available.
+
+Do not assume Wireshark fields map one-to-one to Elasticsearch/OpenSearch field names. Inspect your actual schema.
+
+## Troubleshooting
+
+| Problem | Check |
+| --- | --- |
+| `dns` shows nothing | The capture may lack DNS, use encrypted DNS, or be outside the relevant time window. |
+| Response exists but query is missing | Capture may have started mid-transaction or only one direction may be visible. |
+| Name resolves but no connection appears | Cached resolution, another returned address, application behavior, or capture scope may explain it. |
+| Mostly TLS traffic appears | DNS and application traffic are separate layers; encrypted application content does not necessarily remove DNS visibility. |
+
+## Validation exercise
+
+Create a timeline containing at least five DNS transactions and label each as:
+
+- successful resolution;
+- failed resolution; or
+- incomplete/uncertain.
+
+For one successful resolution, determine whether subsequent packets to a returned address are present.
+
+## Advanced extension
+
+Investigate whether one client generates unusually long, high-volume, or highly variable DNS names. Do **not** label this DNS tunneling from appearance alone. Compare frequency, label lengths, record types, destinations, and surrounding host behavior, then identify what additional evidence would be required.
+
+## References
+
+<CardGroup cols={2}>
+  <Card title="Wireshark Display Filter Reference" icon="filter" href="https://www.wireshark.org/docs/dfref/">
+    Verify DNS and protocol field names for the current Wireshark release.
+  </Card>
+  <Card title="TShark Manual" icon="terminal" href="https://www.wireshark.org/docs/man-pages/tshark">
+    Official CLI filtering and field-extraction reference.
+  </Card>
+</CardGroup>
+
+<CardGroup cols={2}>
+  <Card title="Previous: Packet Foundations" icon="arrow-left" href="/training/network-forensics/wireshark" />
+  <Card title="Next: HTTP, TLS, and Web Traffic" icon="arrow-right" href="/training/network-forensics/web-traffic" />
+</CardGroup>
