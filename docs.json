@@ -15,44 +15,23 @@
         "groups": [
           {
             "group": "Get Started",
-            "pages": [
-              "introduction",
-              "how-to-use",
-              "learning-paths"
-            ]
+            "pages": ["introduction", "how-to-use", "learning-paths"]
           },
           {
             "group": "Free Training",
-            "pages": [
-              "free/platforms",
-              "free/ctf-and-labs",
-              "free/youtube-and-video",
-              "free/books-and-reading"
-            ]
+            "pages": ["free/platforms", "free/ctf-and-labs", "free/youtube-and-video", "free/books-and-reading"]
           },
           {
             "group": "Paid Training",
-            "pages": [
-              "paid/platforms",
-              "paid/bootcamps",
-              "paid/corporate-training"
-            ]
+            "pages": ["paid/platforms", "paid/bootcamps", "paid/corporate-training"]
           },
           {
             "group": "Certifications",
-            "pages": [
-              "certifications/entry-level",
-              "certifications/intermediate",
-              "certifications/advanced"
-            ]
+            "pages": ["certifications/entry-level", "certifications/intermediate", "certifications/advanced"]
           },
           {
             "group": "Hands-On Practice",
-            "pages": [
-              "practice/home-labs",
-              "practice/capture-the-flag",
-              "practice/vulnerable-machines"
-            ]
+            "pages": ["practice/home-labs", "practice/capture-the-flag", "practice/vulnerable-machines"]
           }
         ]
       },
@@ -65,6 +44,7 @@
               "training/python/index",
               "training/python/beginner",
               "training/python/projects/ioc-normalizer",
+              "training/python/projects/auth-log-summarizer",
               "training/python/intermediate",
               "training/python/advanced",
               "training/python/dco-detection-engineering"
@@ -77,22 +57,11 @@
         "groups": [
           {
             "group": "Specializations",
-            "pages": [
-              "domains/network-security",
-              "domains/web-application-security",
-              "domains/cloud-security",
-              "domains/malware-analysis",
-              "domains/penetration-testing",
-              "domains/blue-team-and-soc"
-            ]
+            "pages": ["domains/network-security", "domains/web-application-security", "domains/cloud-security", "domains/malware-analysis", "domains/penetration-testing", "domains/blue-team-and-soc"]
           },
           {
             "group": "Tools & References",
-            "pages": [
-              "tools/essential-tools",
-              "tools/cheat-sheets",
-              "tools/communities-and-news"
-            ]
+            "pages": ["tools/essential-tools", "tools/cheat-sheets", "tools/communities-and-news"]
           }
         ]
       }
