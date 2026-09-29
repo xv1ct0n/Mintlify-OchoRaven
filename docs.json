@@ -100,7 +100,9 @@
             "group": "Network Forensics",
             "icon": "network-wired",
             "pages": [
-              "training/network-forensics/index"
+              "training/network-forensics/index",
+              "training/network-forensics/wireshark",
+              "training/network-forensics/dns-investigation"
             ]
           },
           {

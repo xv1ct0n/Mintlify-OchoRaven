@@ -1,0 +1,157 @@
+---
+title: "Lab 1: Packet Analysis Foundations"
+sidebarTitle: "Lab 1: Wireshark"
+description: "Learn a repeatable packet-analysis workflow using Wireshark and TShark."
+icon: "magnifying-glass"
+---
+
+# Lab 1 — Packet analysis foundations
+
+Learn how to move from a raw PCAP to defensible observations without guessing. This lab establishes the workflow used throughout the course.
+
+## Objectives
+
+By the end of this lab, you can:
+
+- distinguish capture filters from display filters;
+- establish capture scope;
+- identify major endpoints, protocols, and conversations;
+- filter on hosts, protocols, ports, and TCP flags;
+- follow TCP streams;
+- reproduce key observations with TShark.
+
+## Prerequisites
+
+Use Wireshark on a lab workstation or Security Onion Desktop and an authorized `.pcap` or `.pcapng` file.
+
+<Info>
+A **display filter** hides packets after capture. A **capture filter** controls what gets recorded. They use different syntax.
+</Info>
+
+Capture-filter example:
+
+```text
+host 192.0.2.25 and port 53
+```
+
+Display-filter example:
+
+```text
+ip.addr == 192.0.2.25 && dns
+```
+
+## Step 1 — Establish scope
+
+Open the capture, then review:
+
+- **Statistics → Capture File Properties**
+- **Statistics → Protocol Hierarchy**
+- **Statistics → Endpoints**
+- **Statistics → Conversations**
+
+Record:
+
+```text
+Capture start:
+Capture end:
+Packet count:
+Likely internal host(s):
+Dominant protocols:
+Initial question:
+```
+
+### Why this matters
+
+A capture is a time-bounded observation. If traffic is absent, you can only say it is absent from the evidence you have.
+
+## Step 2 — Focus on one host
+
+```text
+ip.addr == 192.0.2.25
+```
+
+Directional variants:
+
+```text
+ip.src == 192.0.2.25
+ip.dst == 192.0.2.25
+```
+
+Replace the example address with a host present in your PCAP.
+
+## Step 3 — Inspect TCP connection attempts
+
+```text
+tcp.flags.syn == 1 && tcp.flags.ack == 0
+```
+
+Combine with a host:
+
+```text
+ip.src == 192.0.2.25 && tcp.flags.syn == 1 && tcp.flags.ack == 0
+```
+
+Look for repeated destination ports, unanswered attempts, resets, and high-frequency connections.
+
+## Step 4 — Follow a conversation
+
+Right-click a TCP packet and choose **Follow → TCP Stream**.
+
+To isolate that conversation later:
+
+```text
+tcp.stream == 3
+```
+
+Use the stream view to reconstruct the interaction rather than reasoning from isolated packets.
+
+## Step 5 — Reproduce observations with TShark
+
+Read a PCAP:
+
+```bash
+tshark -r lab.pcapng
+```
+
+Apply a display filter:
+
+```bash
+tshark -r lab.pcapng -Y "tcp.flags.syn == 1 && tcp.flags.ack == 0"
+```
+
+Extract fields:
+
+```bash
+tshark -r lab.pcapng \
+  -Y "tcp.flags.syn == 1 && tcp.flags.ack == 0" \
+  -T fields \
+  -e frame.time \
+  -e ip.src \
+  -e ip.dst \
+  -e tcp.dstport
+```
+
+## Validation
+
+You should be able to identify at least one host, one TCP conversation, and one protocol of interest, then reproduce the filter from the command line.
+
+## Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| Filter turns red | Verify the field in the [Display Filter Reference](https://www.wireshark.org/docs/dfref/). |
+| No packets match | Confirm the IP/port exists and your syntax is a display filter, not BPF capture syntax. |
+| Follow Stream is unavailable | Ensure the selected packet belongs to a supported connection-oriented stream. |
+| Expected application data is unreadable | The traffic may be encrypted, compressed, incomplete, or not recognized by the dissector. |
+
+## Analyst note
+
+Separate observation from interpretation:
+
+```text
+Observation: 192.0.2.25 initiated 23 TCP connections to 198.51.100.10:443.
+Interpretation: repeated outbound HTTPS communication warrants additional context.
+Limitation: encrypted application content was not visible in the capture.
+```
+
+<Card title="Next: DNS Investigation" href="/training/network-forensics/dns-investigation" icon="arrow-right">Use packet evidence to reconstruct name resolution.</Card>
