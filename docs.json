@@ -104,7 +104,8 @@
               "training/network-forensics/wireshark",
               "training/network-forensics/dns-investigation",
               "training/network-forensics/web-traffic",
-              "training/network-forensics/beaconing-analysis"
+              "training/network-forensics/beaconing-analysis",
+              "training/network-forensics/artifact-analysis"
             ]
           },
           {
