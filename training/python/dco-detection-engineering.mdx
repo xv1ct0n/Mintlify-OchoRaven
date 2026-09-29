@@ -29,6 +29,8 @@ The objective is not to collect disconnected scripts. Each project should become
 
 ## 1. Security Log Parser
 
+**Free concept guide:** [W3Schools file handling](https://www.w3schools.com/python/python_file_handling.asp).
+
 **Intent:** Most defensive automation begins by turning telemetry into consistent data.
 
 **Build:** Parse a sanitized or lab-generated log source such as JSONL, CSV, Zeek logs, or exported Windows events.
@@ -54,6 +56,8 @@ The objective is not to collect disconnected scripts. Each project should become
 
 ## 2. IOC Extractor & Normalizer
 
+**Free concept guide:** [Python ipaddress](https://docs.python.org/3/library/ipaddress.html).
+
 **Intent:** Reduce manual extraction during triage and investigations.
 
 **Build:** Inspect selected event fields and extract IP addresses, domains, URLs, and hashes.
@@ -65,6 +69,8 @@ The objective is not to collect disconnected scripts. Each project should become
 ---
 
 ## 3. IOC Enrichment Engine
+
+**Free concept guide:** [Python urllib.request](https://docs.python.org/3/library/urllib.request.html).
 
 [Build the Intermediate IOC Enrichment Client](/training/python/intermediate-projects/ioc-enrichment-client) and then [extend it with controlled concurrency](/training/python/advanced-projects/concurrent-enrichment-pipeline).
 
@@ -82,6 +88,8 @@ An enrichment hit is context, not proof of maliciousness. Preserve provider, tim
 
 ## 4. Investigation Timeline Builder
 
+**Free concept guide:** [Python datetime](https://docs.python.org/3/library/datetime.html).
+
 **Intent:** Help analysts understand sequence and causality across heterogeneous events.
 
 **Build:** Merge normalized events from multiple sources into a chronological timeline.
@@ -93,6 +101,8 @@ An enrichment hit is context, not proof of maliciousness. Preserve provider, tim
 ---
 
 ## 5. Hunt Analytics Runner
+
+**Free concept guide:** [Python argparse tutorial](https://docs.python.org/3/howto/argparse.html).
 
 [Build the Intermediate Security Telemetry Query Client](/training/python/intermediate-projects/security-telemetry-query-client) as a query and export foundation.
 
@@ -118,6 +128,8 @@ parameters:
 
 ## 6. Sigma Rule Validator
 
+**Free concept guide:** [Sigma rule basics](https://sigmahq.io/docs/basics/rules.html).
+
 [Build the Advanced Detection-as-Code Validator](/training/python/advanced-projects/detection-as-code-validator) for a focused YAML rule quality gate. Its example validates a small rule schema, not the entire Sigma specification.
 
 **Intent:** Introduce detection-as-code quality controls.
@@ -131,6 +143,8 @@ parameters:
 ---
 
 ## 7. Detection Test Harness
+
+**Free concept guide:** [unittest tutorial](https://docs.python.org/3/library/unittest.html).
 
 [Build the Intermediate Detection Test Harness](/training/python/intermediate-projects/detection-test-harness) with positive and negative fixtures and JUnit output.
 
@@ -152,6 +166,8 @@ Track:
 
 ## 8. ATT&CK Detection Mapper
 
+**Free concept guide:** [MITRE ATT&CK techniques](https://attack.mitre.org/techniques/).
+
 **Intent:** Make detection coverage easier to reason about and communicate.
 
 **Build:** Read detection metadata and produce mappings between detection IDs and MITRE ATT&CK techniques/sub-techniques.
@@ -165,6 +181,8 @@ Track:
 ---
 
 ## 9. Telemetry Health Monitor
+
+**Free concept guide:** [Python collections](https://docs.python.org/3/library/collections.html).
 
 [Build the Advanced Telemetry Pipeline Health Monitor](/training/python/advanced-projects/telemetry-pipeline-health-monitor) with explicit thresholds.
 
@@ -186,6 +204,8 @@ proxy                critical 4h ago            no recent events
 ---
 
 ## 10. Capstone — Detection Engineering Pipeline
+
+**Free concept guide:** [Python modules tutorial](https://docs.python.org/3/tutorial/modules.html).
 
 **Intent:** Combine Python skills into a practical defensive engineering capability.
 

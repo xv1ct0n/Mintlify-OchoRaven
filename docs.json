@@ -73,9 +73,6 @@
                 ]
               },
               "training/python/intermediate",
-              "training/python/advanced",
-              "training/python/dco-detection-engineering",
-              "training/python/resources",
               {
                 "group": "Intermediate Projects",
                 "pages": [
@@ -85,6 +82,7 @@
                   "training/python/intermediate-projects/analyst-case-packager"
                 ]
               },
+              "training/python/advanced",
               {
                 "group": "Advanced Projects",
                 "pages": [
@@ -93,7 +91,9 @@
                   "training/python/advanced-projects/telemetry-pipeline-health-monitor",
                   "training/python/advanced-projects/security-automation-service"
                 ]
-              }
+              },
+              "training/python/dco-detection-engineering",
+              "training/python/resources"
             ]
           },
           {

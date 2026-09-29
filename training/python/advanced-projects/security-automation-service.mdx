@@ -25,17 +25,25 @@ Read through the lessons before copying the full listing. After each lesson, fin
 
 ### Lesson 1: API contract
 
+**Free concept walkthrough:** [FastAPI tutorial](https://fastapi.tiangolo.com/tutorial/).
+
 Pydantic bounds the input and documents the normalized response. A valid IP or domain returns a typed result; malformed input receives 422.
 
 ### Lesson 2: Authentication
+
+**Free concept walkthrough:** [FastAPI security tutorial](https://fastapi.tiangolo.com/tutorial/security/).
 
 Compare X-API-Key with a server-side environment secret using a constant-time function. Missing configuration returns 503. A shared key is only suitable for a restricted lab.
 
 ### Lesson 3: Observability
 
+**Free concept walkthrough:** [Python logging HOWTO](https://docs.python.org/3/howto/logging.html).
+
 Middleware creates a request ID and logs path and status as JSON without logging indicators or secrets. Health reports configured or unconfigured.
 
 ### Lesson 4: Tests and deployment
+
+**Free concept walkthrough:** [FastAPI testing](https://fastapi.tiangolo.com/tutorial/testing/).
 
 TestClient checks authorization and validation in process. A non-root container is bound to loopback. Add TLS and stronger identity before any wider deployment.
 

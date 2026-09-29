@@ -25,17 +25,25 @@ Read through the lessons before copying the full listing. After each lesson, fin
 
 ### Lesson 1: Repository conventions
 
+**Free concept walkthrough:** [Sigma rules](https://sigmahq.io/docs/basics/rules.html).
+
 The teaching YAML schema requires id, title, description, logsource, and a field-equals predicate. It is not a full Sigma parser.
 
 ### Lesson 2: Metadata integrity
+
+**Free concept walkthrough:** [Python sets](https://www.w3schools.com/python/python_sets.asp).
 
 Check kebab-case IDs and duplicates across files. ATT&CK validation here checks syntax only; production should verify IDs against a pinned dataset.
 
 ### Lesson 3: Safe parsing
 
+**Free concept walkthrough:** [PyYAML documentation](https://pyyaml.org/wiki/PyYAMLDocumentation).
+
 Use yaml.safe_load. Invalid YAML is reported, not silently skipped. Pin a supported PyYAML release in the project.
 
 ### Lesson 4: Behavioral test gate
+
+**Free concept walkthrough:** [pytest getting started](https://docs.pytest.org/en/stable/getting-started.html).
 
 Require positive and negative fixtures for every rule. Compare expected and actual matches; emit JSON and exit 1 if any rule fails.
 
