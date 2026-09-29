@@ -1,0 +1,164 @@
+---
+title: "Lab 6: Security Onion and Arkime Correlation"
+description: "Pivot from alerts and indexed sessions to packet-level evidence using Security Onion, Arkime, Suricata, and Wireshark."
+icon: "shield"
+---
+
+# Lab 6 — Security Onion and Arkime Correlation
+
+Real investigations rarely begin with a PCAP handed directly to the analyst. More often, an alert, hunt result, session, hostname, IP, or timestamp provides the starting point. This lab teaches you to narrow that starting context and pivot into packet-level evidence.
+
+<Info>
+**Prerequisite:** Comfortable with Wireshark packet analysis. Security Onion/Arkime access is required for the platform-specific portion; otherwise read the workflow and perform the PCAP portion with an exported training capture.
+
+**Outcome:** Move from alert/session metadata to relevant PCAP, validate the underlying traffic, and document where conclusions came from.
+</Info>
+
+## Tool roles
+
+```text
+Suricata
+alerts + protocol/flow telemetry
+        ↓
+Security Onion
+integrated search/hunt/alert workflow
+        ↓
+Arkime/session data
+narrow conversations + packet access
+        ↓
+Wireshark
+packet-level reconstruction
+```
+
+Exact interfaces and field names vary by deployed Security Onion and Arkime versions.
+
+## Step 1 — Start with an investigative seed
+
+Use an authorized lab alert or choose a known training session. Record:
+
+```text
+Alert/signature or question:
+Timestamp/time window:
+Source IP:
+Destination IP:
+Source/destination ports:
+Protocol:
+Sensor, if relevant:
+```
+
+## Step 2 — Expand context before PCAP
+
+In the available Security Onion hunt/search interface, examine nearby telemetry for the same host pair and time window. Look for related DNS, Suricata, connection/session, and application metadata available in your deployment.
+
+Do not assume a field name from Elasticsearch, OpenSearch, Zeek, or Suricata exists under the same name in every deployment.
+
+## Step 3 — Pivot to packet capture
+
+Security Onion's current documentation describes full-packet-capture pivots from Alerts, Dashboards, and Hunt, and its Wireshark documentation describes opening downloaded PCAP in Wireshark.
+
+Retrieve only the packet scope needed for the investigation where practical.
+
+## Step 4 — Validate in Wireshark
+
+Apply a host-pair filter:
+
+```text
+ip.addr == 192.0.2.25 && ip.addr == 198.51.100.10
+```
+
+Then answer:
+
+- is the reported connection present?
+- which side initiated it?
+- was the TCP handshake successful?
+- what application protocol is visible?
+- what happened before and after the alert packet/session?
+- does the packet evidence support the alert's interpretation?
+
+## Step 5 — Use Arkime to narrow sessions
+
+Arkime indexes session metadata around stored packets. Use its search interface to isolate relevant sessions by the fields available in your deployment, then inspect session packets or export PCAP for Wireshark.
+
+<Warning>
+Arkime search expressions are not Wireshark display filters. Use Arkime's own field/search documentation for your version.
+</Warning>
+
+## Step 6 — Correlate Suricata
+
+Suricata EVE JSON can include addresses, ports, protocol, flow information, alert details, and other event-specific fields. When Suricata processes PCAP, supported EVE events can include packet-position context such as `pcap_cnt`, which may assist a direct packet pivot.
+
+Always verify fields against the Suricata documentation for the deployed version.
+
+## Step 7 — Compare conclusions by evidence source
+
+Create a table:
+
+| Source | Observation | What it establishes | Limitation |
+| --- | --- | --- | --- |
+| Suricata | Signature fired | Rule conditions matched observed traffic | Signature may need context/tuning |
+| Arkime | Session metadata | Session attributes and packet availability | Indexed fields are a summary |
+| Wireshark | Packet/stream evidence | Protocol-level bytes/fields actually captured | Limited to capture scope and encryption |
+| SIEM | Related events | Broader temporal/host context | Depends on collection/schema |
+
+## Step 8 — Write a concise finding
+
+Use this structure:
+
+```text
+Question:
+
+Alert/session context:
+
+Packet evidence:
+
+Correlated telemetry:
+
+Assessment:
+
+Limitations:
+
+Recommended next pivot:
+```
+
+Separate **observation** from **assessment**.
+
+## Troubleshooting
+
+| Problem | Check |
+| --- | --- |
+| Alert exists but PCAP does not | Retention, sensor coverage, capture loss, or deployment configuration may differ. |
+| PCAP timestamp seems different | Confirm time zones and whether traffic was replayed/imported. Security Onion notes that replay can affect displayed timestamps. |
+| Arkime session search finds nothing | Verify time range, sensor, IP direction, field syntax, and retention. |
+| Suricata alert doesn't look malicious in stream | Rule may match a narrow pattern; inspect signature logic and surrounding context. |
+
+## Advanced extension — detection validation
+
+Choose a benign lab Suricata alert. Identify the exact packet/stream feature that caused the rule to match. Then document:
+
+- what the rule observes;
+- what it assumes;
+- potential false-positive conditions;
+- fields useful for triage;
+- whether a threshold/flow/state condition would improve fidelity.
+
+## References
+
+<CardGroup cols={2}>
+  <Card title="Security Onion: Full Packet Capture" icon="database" href="https://docs.securityonion.net/en/3/main/full-packet-capture/">
+    Official packet-capture and pivot documentation.
+  </Card>
+  <Card title="Security Onion: Wireshark" icon="magnifying-glass" href="https://docs.securityonion.net/en/3/main/wireshark/">
+    Official Wireshark integration and object-extraction guidance.
+  </Card>
+  <Card title="Security Onion: PCAP Testing" icon="flask" href="https://docs.securityonion.net/en/3/main/pcaps/">
+    Official testing/import/replay guidance and maintained dataset links.
+  </Card>
+  <Card title="Suricata EVE JSON" icon="file-code" href="https://docs.suricata.io/en/latest/output/eve/eve-json-format.html">
+    Official EVE event format reference.
+  </Card>
+</CardGroup>
+
+<CardGroup cols={2}>
+  <Card title="Previous: Artifact Analysis" icon="arrow-left" href="/training/network-forensics/artifact-analysis" />
+  <Card title="Next: Capstone" icon="arrow-right" href="/training/network-forensics/capstone" />
+</CardGroup>
