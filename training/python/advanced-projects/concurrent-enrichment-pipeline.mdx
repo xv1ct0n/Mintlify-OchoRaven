@@ -25,17 +25,25 @@ Read through the lessons before copying the full listing. After each lesson, fin
 
 ### Lesson 1: Provider abstraction
 
+**Free concept walkthrough:** [Python classes](https://docs.python.org/3/tutorial/classes.html).
+
 Each provider is a callable paired with its own limiter. Fixture mode makes the same work queue testable without consuming quotas.
 
 ### Lesson 2: Bound concurrency
+
+**Free concept walkthrough:** [concurrent.futures](https://docs.python.org/3/library/concurrent.futures.html).
 
 A thread pool limits active jobs and preserves final output order. The limiter spaces each provider's request starts even when more workers are available.
 
 ### Lesson 3: Retry deliberately
 
+**Free concept walkthrough:** [Python time.sleep](https://docs.python.org/3/library/time.html#time.sleep).
+
 Retry timeouts, connectivity problems, HTTP 429, and selected server errors with exponential backoff and jitter. Fail other client errors immediately.
 
 ### Lesson 4: Coordinate state
+
+**Free concept walkthrough:** [Python threading](https://docs.python.org/3/library/threading.html).
 
 A lock protects shared cache and metrics. The output distinguishes fresh calls from cache hits and records elapsed time. JSON persistence is only safe for a single process.
 

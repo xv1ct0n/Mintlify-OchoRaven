@@ -64,11 +64,34 @@
             "pages": [
               "training/python/index",
               "training/python/beginner",
-              "training/python/projects/ioc-normalizer",
-              "training/python/projects/auth-log-summarizer",
-              "training/python/projects/file-hash-inventory",
+              {
+                "group": "Beginner Projects",
+                "pages": [
+                  "training/python/projects/ioc-normalizer",
+                  "training/python/projects/auth-log-summarizer",
+                  "training/python/projects/file-hash-inventory"
+                ]
+              },
               "training/python/intermediate",
+              {
+                "group": "Intermediate Projects",
+                "pages": [
+                  "training/python/intermediate-projects/ioc-enrichment-client",
+                  "training/python/intermediate-projects/security-telemetry-query-client",
+                  "training/python/intermediate-projects/detection-test-harness",
+                  "training/python/intermediate-projects/analyst-case-packager"
+                ]
+              },
               "training/python/advanced",
+              {
+                "group": "Advanced Projects",
+                "pages": [
+                  "training/python/advanced-projects/concurrent-enrichment-pipeline",
+                  "training/python/advanced-projects/detection-as-code-validator",
+                  "training/python/advanced-projects/telemetry-pipeline-health-monitor",
+                  "training/python/advanced-projects/security-automation-service"
+                ]
+              },
               "training/python/dco-detection-engineering",
               "training/python/resources"
             ]
@@ -78,24 +101,6 @@
             "pages": [
               "training/cissp/index",
               "training/cissp/weekly-plan"
-            ]
-          },
-          {
-            "group": "Intermediate Projects",
-            "pages": [
-              "training/python/intermediate-projects/ioc-enrichment-client",
-              "training/python/intermediate-projects/security-telemetry-query-client",
-              "training/python/intermediate-projects/detection-test-harness",
-              "training/python/intermediate-projects/analyst-case-packager"
-            ]
-          },
-          {
-            "group": "Advanced Projects",
-            "pages": [
-              "training/python/advanced-projects/concurrent-enrichment-pipeline",
-              "training/python/advanced-projects/detection-as-code-validator",
-              "training/python/advanced-projects/telemetry-pipeline-health-monitor",
-              "training/python/advanced-projects/security-automation-service"
             ]
           }
         ]

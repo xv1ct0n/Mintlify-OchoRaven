@@ -62,6 +62,8 @@ No third-party packages are required.
 
 # Lesson 1 — Understand the problem
 
+**Free concept walkthrough:** [Python tutorial](https://docs.python.org/3/tutorial/)
+
 Suppose an analyst receives a directory containing collected files. Manually recording filenames, sizes, and hashes is slow and error-prone.
 
 We want Python to transform:
@@ -107,6 +109,8 @@ CSV / JSON Report
 
 # Lesson 2 — Create safe sample files
 
+**Free concept walkthrough:** [Python pathlib](https://docs.python.org/3/library/pathlib.html)
+
 Create the project directories:
 
 ```bash
@@ -137,6 +141,8 @@ The extension does not determine how hashing works. SHA-256 operates on bytes re
 ---
 
 # Lesson 3 — Revisit `Path`
+
+**Free concept walkthrough:** [Python pathlib](https://docs.python.org/3/library/pathlib.html)
 
 Import:
 
@@ -180,6 +186,8 @@ Less portable report path:
 
 # Lesson 4 — Discover files recursively
 
+**Free concept walkthrough:** [Python pathlib](https://docs.python.org/3/library/pathlib.html)
+
 Use `rglob()`:
 
 ```python
@@ -217,6 +225,8 @@ Deterministic output is a valuable engineering property. The same input should p
 
 # Lesson 5 — Understand binary file I/O
 
+**Free concept walkthrough:** [Python pathlib](https://docs.python.org/3/library/pathlib.html)
+
 In earlier projects you mostly read text using:
 
 ```python
@@ -247,6 +257,8 @@ Decoding interprets bytes as text and can fail or alter representation. A file h
 ---
 
 # Lesson 6 — Calculate your first SHA-256
+
+**Free concept walkthrough:** [Python hashlib](https://docs.python.org/3/library/hashlib.html)
 
 Import:
 
@@ -288,6 +300,8 @@ Which hosts contain files with the same content?
 
 # Lesson 7 — Why reading an entire file is a problem
 
+**Free concept walkthrough:** [Python pathlib](https://docs.python.org/3/library/pathlib.html)
+
 This works for tiny files:
 
 ```python
@@ -314,6 +328,8 @@ This is **streaming I/O**.
 ---
 
 # Lesson 8 — Hash files in chunks
+
+**Free concept walkthrough:** [Python hashlib](https://docs.python.org/3/library/hashlib.html)
 
 Define a chunk size:
 
@@ -367,6 +383,8 @@ Either form is valid. Use the one you understand most clearly.
 
 # Lesson 9 — Verify hashing behavior
 
+**Free concept walkthrough:** [Python hashlib](https://docs.python.org/3/library/hashlib.html)
+
 Test one file:
 
 ```python
@@ -401,6 +419,8 @@ Hash comparison can show that content differs or matches. It does not explain **
 ---
 
 # Lesson 10 — Collect file metadata
+
+**Free concept walkthrough:** [Python pathlib](https://docs.python.org/3/library/pathlib.html)
 
 A hash is more useful when accompanied by context.
 
@@ -461,6 +481,8 @@ It produces `/`-separated paths consistently in the report, including when Pytho
 
 # Lesson 11 — Handle errors per file
 
+**Free concept walkthrough:** [Python exceptions](https://docs.python.org/3/tutorial/errors.html)
+
 A directory may contain a file that disappears, becomes inaccessible, or cannot be read.
 
 A fragile program might terminate the entire scan.
@@ -504,6 +526,8 @@ This is a major lesson for defensive automation: decide whether an error should 
 
 # Lesson 12 — Consider filesystem race conditions
 
+**Free concept walkthrough:** [Python pathlib](https://docs.python.org/3/library/pathlib.html)
+
 A file can change between discovery, metadata collection, and hashing.
 
 For example:
@@ -528,6 +552,8 @@ Good engineering includes knowing what your program **cannot guarantee**. Produc
 ---
 
 # Lesson 13 — Export CSV
+
+**Free concept walkthrough:** [Python CSV guide](https://docs.python.org/3/library/csv.html)
 
 CSV is useful for spreadsheets, quick review, and ingestion into many analysis tools.
 
@@ -574,6 +600,8 @@ Python's CSV documentation recommends opening CSV files this way so the module c
 
 # Lesson 14 — Export JSON
 
+**Free concept walkthrough:** [Python JSON guide](https://docs.python.org/3/library/json.html)
+
 Project 1 and Project 2 used JSON. Reuse the pattern:
 
 ```python
@@ -600,6 +628,8 @@ A useful tool can support both.
 ---
 
 # Lesson 15 — Find duplicate content
+
+**Free concept walkthrough:** [Python collections](https://docs.python.org/3/library/collections.html)
 
 If two files have the same SHA-256, they contain the same byte sequence for practical inventory purposes.
 
@@ -643,6 +673,8 @@ Again, identical content does not establish maliciousness.
 
 # Lesson 16 — Build summary statistics
 
+**Free concept walkthrough:** [Python collections](https://docs.python.org/3/library/collections.html)
+
 Create a report:
 
 ```python
@@ -678,6 +710,8 @@ That structure is easier for humans and programs to consume.
 ---
 
 # Lesson 17 — Add command-line arguments
+
+**Free concept walkthrough:** [Python argparse tutorial](https://docs.python.org/3/howto/argparse.html)
 
 Import:
 
@@ -726,6 +760,8 @@ python3 hash_inventory.py samples \
 
 # Lesson 18 — Validate the target directory
 
+**Free concept walkthrough:** [Python pathlib](https://docs.python.org/3/library/pathlib.html)
+
 Before scanning:
 
 ```python
@@ -743,6 +779,8 @@ This produces a clear user-facing error instead of allowing a later operation to
 ---
 
 # Lesson 19 — Print a useful summary
+
+**Free concept walkthrough:** [Python collections](https://docs.python.org/3/library/collections.html)
 
 ```python
 def print_summary(report: dict) -> None:
@@ -766,6 +804,8 @@ The console provides immediate status; the output files contain detailed artifac
 ---
 
 # Lesson 20 — Assemble `main()`
+
+**Free concept walkthrough:** [Python tutorial](https://docs.python.org/3/tutorial/)
 
 ```python
 def main() -> int:
@@ -822,6 +862,8 @@ CSV + JSON + Console Summary
 ---
 
 # Lesson 21 — Assemble the final program
+
+**Free concept walkthrough:** [Python tutorial](https://docs.python.org/3/tutorial/)
 
 Your finished `hash_inventory.py` should contain:
 
@@ -1007,6 +1049,8 @@ if __name__ == "__main__":
 
 # Lesson 22 — Run the finished project
 
+**Free concept walkthrough:** [Python tutorial](https://docs.python.org/3/tutorial/)
+
 Run:
 
 ```bash
@@ -1044,6 +1088,8 @@ Then inspect the JSON report for summary, file, duplicate, and error sections.
 
 # Lesson 23 — Create and detect a duplicate
 
+**Free concept walkthrough:** [Python pathlib](https://docs.python.org/3/library/pathlib.html)
+
 Copy a file without changing its contents:
 
 ```bash
@@ -1076,6 +1122,8 @@ You have now used a cryptographic hash to identify content equality despite diff
 
 # Lesson 24 — Test error handling
 
+**Free concept walkthrough:** [Python exceptions](https://docs.python.org/3/tutorial/errors.html)
+
 Error testing varies by operating system and permissions. The goal is to understand behavior, not to damage files or alter security controls.
 
 Safe options include:
@@ -1100,6 +1148,8 @@ Do not use this exercise to bypass access controls. Only inventory directories a
 ---
 
 # Lesson 25 — Understand integrity baselines
+
+**Free concept walkthrough:** [Python hashlib](https://docs.python.org/3/library/hashlib.html)
 
 A single inventory describes one point in time.
 
@@ -1134,6 +1184,8 @@ You will implement this yourself as the independent challenge.
 ---
 
 # Lesson 26 — Document the project
+
+**Free concept walkthrough:** [Python tutorial](https://docs.python.org/3/tutorial/)
 
 Your `README.md` should include:
 

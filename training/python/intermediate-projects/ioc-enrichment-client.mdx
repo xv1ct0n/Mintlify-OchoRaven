@@ -25,17 +25,25 @@ Read through the lessons before copying the full listing. After each lesson, fin
 
 ### Lesson 1: Provider contract
 
+**Free concept walkthrough:** [Python functions](https://www.w3schools.com/python/python_functions.asp).
+
 The input is a JSON list of strings. A provider function maps one indicator to one JSON object. Fixture and live modes share the contract, so offline development exercises the same normalization.
 
 ### Lesson 2: Transport and credentials
+
+**Free concept walkthrough:** [urllib.request](https://docs.python.org/3/library/urllib.request.html).
 
 The live adapter URL-encodes indicators, requires HTTPS, sets a timeout, and reads the key from the environment. Adapt the generic route and response mapping to your actual provider documentation.
 
 ### Lesson 3: Normalize uncertainty
 
+**Free concept walkthrough:** [Python exceptions](https://docs.python.org/3/tutorial/errors.html).
+
 Retain the indicator, type, classification, tags, source, and retrieval time. An enrichment hit is context, not proof of maliciousness.
 
 ### Lesson 4: Cache and failure behavior
+
+**Free concept walkthrough:** [Python dictionaries](https://www.w3schools.com/python/python_dictionaries.asp).
 
 Deduplicate while preserving order, reuse recent results, and report per-indicator errors without losing the rest of the analysis.
 
