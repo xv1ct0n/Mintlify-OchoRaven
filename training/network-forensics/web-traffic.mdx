@@ -4,3 +4,148 @@ sidebarTitle: "Lab 3: Web Traffic"
 description: "Analyze HTTP transactions and TLS metadata while understanding what encrypted traffic can and cannot reveal."
 icon: "browser"
 ---
+
+# Lab 3 — HTTP, TLS, and web traffic
+
+Web traffic is a common source of investigative evidence. This lab separates what you can observe in plaintext HTTP from what remains visible when application data is encrypted with TLS.
+
+## Objectives
+
+You will be able to:
+
+- identify HTTP requests and responses;
+- extract host, URI, user-agent, status, and content metadata;
+- inspect TLS handshakes and certificates;
+- explain the limits of encrypted packet analysis;
+- correlate web sessions with DNS and endpoint context.
+
+## HTTP analysis
+
+When plaintext HTTP exists, begin with:
+
+```text
+http
+```
+
+Requests:
+
+```text
+http.request
+```
+
+GET requests:
+
+```text
+http.request.method == "GET"
+```
+
+Useful fields include:
+
+```text
+http.host
+http.request.uri
+http.user_agent
+http.response.code
+```
+
+### Walkthrough
+
+1. Filter `http.request`.
+2. Select a request from your lab host.
+3. Record host, URI, method, user-agent, timestamp, and destination IP.
+4. Locate the corresponding response.
+5. Record status code and content type where visible.
+6. Follow the TCP stream to reconstruct the transaction.
+
+### Analyst questions
+
+- Was a file requested?
+- Did the server return `200`, redirect, or error?
+- Is the user-agent expected for the host?
+- Does the request occur immediately after a DNS lookup?
+
+## TLS analysis
+
+Filter:
+
+```text
+tls
+```
+
+A TLS capture may expose handshake metadata even when application content is encrypted. Depending on protocol version and capture context, inspect:
+
+- client/server IP and port;
+- TLS version;
+- certificate information;
+- handshake timing;
+- Server Name Indication when visible;
+- record sizes and session duration.
+
+<Info>
+Encryption changes the questions you can answer. You can often characterize **who talked, when, for how long, and how much data moved** even when you cannot inspect application payloads.
+</Info>
+
+<Warning>
+Do not claim a URL, command, downloaded payload, or application content from encrypted traffic unless you actually have the authorized decryption material or corroborating telemetry.
+</Warning>
+
+## Correlate DNS with TLS
+
+Build a timeline:
+
+```text
+DNS query → DNS answer → TCP connection → TLS handshake → encrypted records
+```
+
+This lets you support a statement such as:
+
+> The workstation resolved `example.com`, then established a TLS session to the returned address two seconds later.
+
+That is different from claiming what happened inside the encrypted session.
+
+## Exporting HTTP objects
+
+For a benign lab capture containing plaintext HTTP objects, use **File → Export Objects → HTTP**.
+
+Hash the extracted artifact before opening it:
+
+```bash
+sha256sum exported-file.bin
+```
+
+PowerShell:
+
+```powershell
+Get-FileHash .\exported-file.bin -Algorithm SHA256
+```
+
+## TShark practice
+
+```bash
+tshark -r lab.pcapng \
+  -Y "http.request" \
+  -T fields \
+  -e frame.time \
+  -e ip.src \
+  -e http.host \
+  -e http.request.uri \
+  -e http.user_agent
+```
+
+For TLS sessions:
+
+```bash
+tshark -r lab.pcapng \
+  -Y "tls" \
+  -T fields \
+  -e frame.time \
+  -e ip.src \
+  -e ip.dst \
+  -e tcp.stream
+```
+
+## Validation
+
+Document one HTTP transaction or one TLS session with timestamps, endpoints, supporting filters, and a clear statement of what the packet evidence does and does not establish.
+
+<Card title="Next: Beaconing Analysis" href="/training/network-forensics/beaconing-analysis" icon="arrow-right">Move from single sessions to repeated communication patterns.</Card>
