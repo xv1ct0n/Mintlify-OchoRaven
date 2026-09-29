@@ -97,6 +97,13 @@
             ]
           },
           {
+            "group": "Network Forensics",
+            "icon": "network-wired",
+            "pages": [
+              "training/network-forensics/index"
+            ]
+          },
+          {
             "group": "CISSP",
             "pages": [
               "training/cissp/index",
