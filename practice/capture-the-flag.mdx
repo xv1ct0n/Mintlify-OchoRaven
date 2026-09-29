@@ -43,33 +43,49 @@ You don't need advanced skills to enter your first CTF — you need curiosity an
 
 ## Top CTF Platforms
 
-These platforms offer the best environments for CTF practice, ranging from always-on beginner archives to competitive live events with global leaderboards.
+These platforms offer the best environments for CTF practice, ranging from always-on beginner archives to defensive investigation labs and competitive live events.
 
 <CardGroup cols={2}>
   <Card title="PicoCTF" icon="flag" href="https://picoctf.org">
-    Created by Carnegie Mellon University's CyberSecurity Lab, PicoCTF is the gold standard for beginner CTF training. Its ever-growing challenge archive is always accessible for free, and the annual competition opens to students and learners worldwide.
+    Created by Carnegie Mellon University's CyberSecurity Lab, PicoCTF is a strong beginner CTF starting point with a large archive of progressively harder challenges.
+  </Card>
+
+  <Card title="CyberDefenders" icon="shield" href="https://cyberdefenders.org/blueteam-ctf-challenges/?type=ctf">
+    Blue-team CTF and investigation labs across malware analysis, threat intelligence, network forensics, detection engineering, threat hunting, cloud forensics, and endpoint forensics. Labs span easy through insane difficulty and include cloud and downloadable formats depending on the challenge.
+  </Card>
+
+  <Card title="MemLabs" icon="memory" href="https://github.com/stuxnet999/MemLabs">
+    A free Windows memory-forensics CTF series designed to introduce Volatility-style analysis. Start with the guided sample lab, then progress from easy to hard challenges.
   </Card>
 
   <Card title="CTFtime" icon="calendar" href="https://ctftime.org">
-    The definitive global CTF calendar. CTFtime tracks hundreds of competitions per year, maintains all-time team and country rankings, and hosts one of the largest community-contributed writeup archives on the internet.
+    The central calendar and results hub for competitive CTF events, team rankings, and community writeups.
   </Card>
 
   <Card title="TryHackMe" icon="shield" href="https://tryhackme.com">
-    TryHackMe blends structured learning paths with CTF-style rooms, making it ideal for learners who want guided context alongside hands-on challenges. A free tier provides access to a large library of beginner and intermediate rooms.
+    Structured learning paths plus CTF-style rooms, with a mixture of free and subscription content.
   </Card>
 
   <Card title="Hack The Box" icon="cube" href="https://hackthebox.com">
-    The benchmark for competitive CTF practice. Hack The Box features realistic, enterprise-grade machines, seasonal challenges, and Pro Labs that simulate full corporate environments. Retired machines are freely accessible to all registered users.
+    Realistic machines, seasonal challenges, and advanced labs for intermediate and advanced practitioners.
   </Card>
 
   <Card title="RootMe" icon="terminal" href="https://root-me.org">
-    RootMe hosts over 400 challenges across web, network, forensics, cryptography, and more — all with no time limit. It's entirely free and well-regarded in the European CTF community for the breadth and quality of its challenge library.
+    A broad challenge library spanning web, network, forensics, cryptography, and other categories.
   </Card>
 
   <Card title="CryptoHack" icon="key" href="https://cryptohack.org">
-    CryptoHack is the best free platform for learning modern cryptography through interactive challenges. It covers everything from classical ciphers to elliptic curve cryptography and RSA attacks, with friendly explanations that build genuine mathematical understanding alongside the hands-on skills.
+    Interactive cryptography challenges covering classical and modern cryptographic concepts.
   </Card>
 </CardGroup>
+
+## Defensive CTF recommendations
+
+| Resource | Domain | Level | Why use it |
+| --- | --- | --- | --- |
+| [CyberDefenders](https://cyberdefenders.org/blueteam-ctf-challenges/?type=ctf) | Blue Team / DFIR | Beginner → Advanced | Broad defensive scenarios with category and difficulty filters. |
+| [MemLabs](https://github.com/stuxnet999/MemLabs) | Memory Forensics | Beginner → Advanced | Focused repetition with Windows memory images and progressive difficulty. |
+| [Malware Traffic Analysis](https://www.malware-traffic-analysis.net/training-exercises.html) | Network Forensics | Intermediate | Realistic malware-traffic PCAP exercises with current scenarios. |
 
 <Tip>
   **Make writeups a core part of your workflow.** After every CTF — whether you solved the challenge or not — search CTFtime for published writeups from that event. Reading how experienced players approached the same problem you struggled with is one of the highest-leverage learning activities in cybersecurity. Over time, you'll internalize a mental library of attack patterns that lets you recognize challenge types instantly and move straight to the relevant technique.
