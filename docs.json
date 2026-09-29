@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "luma",
+  "theme": "palm",
   "name": "OchoHub",
   "colors": {
     "primary": "#ef7025",
@@ -187,6 +187,13 @@
     "socials": {}
   },
   "appearance": {
-    "strict": false
+    "strict": false,
+    "default": "dark"
+  },
+  "icons": {
+    "library": "lucide"
+  },
+  "background": {
+    "decoration": "gradient"
   }
 }
