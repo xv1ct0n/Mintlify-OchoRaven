@@ -1,0 +1,110 @@
+---
+title: "Python Beginner"
+description: "Build Python fundamentals through practical cybersecurity projects."
+icon: "seedling"
+---
+
+# Beginner — Python Foundations
+
+**Goal:** Become comfortable reading and writing small Python programs while learning to automate common analyst tasks.
+
+## Concepts to learn
+
+- Variables and Python data types
+- Strings and string methods
+- Lists, tuples, sets, and dictionaries
+- Boolean logic and comparisons
+- `if`, `elif`, and `else`
+- `for` and `while` loops
+- Functions, arguments, and return values
+- Reading and writing files
+- Paths with `pathlib`
+- Exceptions and basic error handling
+- Imports and the standard library
+- JSON and CSV fundamentals
+- Virtual environments and `pip`
+
+## Project 1 — IOC Normalizer
+
+**Intent:** Learn basic Python control flow and data structures while solving a common analyst problem: turning inconsistent indicator lists into normalized data.
+
+**Capability:** Accept a text file containing IPv4 addresses, domains, URLs, and hashes; remove duplicates; classify indicators; and export clean results.
+
+### Build requirements
+
+<Steps>
+  <Step title="Read the input">
+    Accept an input filename from the command line and read one candidate indicator per line.
+  </Step>
+  <Step title="Normalize values">
+    Strip whitespace, ignore blank lines, and normalize values where doing so will not destroy evidence.
+  </Step>
+  <Step title="Classify indicators">
+    Use `ipaddress`, string operations, and simple validation logic to classify IPv4 addresses, domains, URLs, and common hash lengths.
+  </Step>
+  <Step title="Deduplicate">
+    Use sets or dictionary keys to eliminate duplicate indicators.
+  </Step>
+  <Step title="Export results">
+    Produce JSON or CSV output containing `value`, `type`, and `source` fields.
+  </Step>
+</Steps>
+
+**Success criteria:** Invalid values do not crash the program; duplicates disappear; output is machine-readable; and the README explains normalization decisions.
+
+## Project 2 — Authentication Log Summarizer
+
+**Intent:** Learn file processing, dictionaries, functions, and aggregation using security telemetry.
+
+**Capability:** Analyze a synthetic authentication log and summarize successful and failed logins by user and source IP.
+
+### Tasks
+
+1. Parse each record into meaningful fields.
+2. Count failures and successes by username.
+3. Count failures by source IP.
+4. Identify accounts with repeated failures followed by a success.
+5. Print a concise analyst summary.
+6. Export findings to JSON.
+
+**Stretch goal:** Add configurable thresholds such as `--failure-threshold 5`.
+
+## Project 3 — File Hash Inventory
+
+**Intent:** Introduce filesystem automation and cryptographic hashing.
+
+**Capability:** Recursively inventory a lab directory and calculate SHA-256 hashes for files.
+
+### Required output
+
+```text
+path,size_bytes,sha256
+samples/example.exe,20480,<hash>
+```
+
+Add graceful handling for inaccessible files and record errors separately rather than terminating the scan.
+
+## Beginner checkpoint
+
+Before progressing, you should be able to create a script without a tutorial that:
+
+- reads a file;
+- validates and transforms its data;
+- uses functions to separate responsibilities;
+- handles expected errors;
+- stores information in lists/dictionaries/sets;
+- writes structured output; and
+- accepts basic command-line input.
+
+## Resources
+
+- [Python Tutorial](https://docs.python.org/3/tutorial/)
+- [Python `pathlib`](https://docs.python.org/3/library/pathlib.html)
+- [Python `ipaddress`](https://docs.python.org/3/library/ipaddress.html)
+- [Python `hashlib`](https://docs.python.org/3/library/hashlib.html)
+- [Python `json`](https://docs.python.org/3/library/json.html)
+- [Python `csv`](https://docs.python.org/3/library/csv.html)
+
+<Info>
+Keep each project in its own Git repository or folder with `README.md`, `requirements.txt` when dependencies are needed, sample sanitized data, and example output.
+</Info>
