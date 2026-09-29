@@ -1,0 +1,1390 @@
+---
+title: "Project 2: Authentication Log Summarizer"
+description: "Build a functional Python authentication-log analysis tool while learning parsing, aggregation, timelines, and basic detection logic."
+icon: "user-shield"
+---
+
+# Project 2 — Authentication Log Summarizer
+
+Project 1 taught you how to turn inconsistent strings into structured IOC records. Project 2 moves closer to day-to-day defensive analysis: you will process a stream of authentication events, summarize activity, and identify a simple behavioral pattern worth analyst review.
+
+<Info>
+**Final capability:** Build `auth_summarizer.py`, a command-line tool that reads synthetic JSONL authentication telemetry, validates events, counts successes and failures by user and source IP, identifies repeated failures followed by a success, prints an analyst summary, and exports a structured JSON report.
+</Info>
+
+## Operational intent
+
+Authentication telemetry is central to SOC monitoring, threat hunting, incident response, and identity-focused detection engineering. Analysts frequently need to answer questions such as:
+
+- Which accounts are experiencing the most failures?
+- Which source IPs are generating failures?
+- Did a series of failures eventually result in a successful login?
+- When did the activity occur?
+- What source and destination were involved?
+
+This project teaches the Python patterns needed to answer those questions repeatably.
+
+<Warning>
+A sequence of failed logins followed by a success is **not proof of compromise**. Users mistype passwords, applications retry credentials, and administrators perform legitimate testing. The tool produces an analytical lead for review, not a verdict.
+</Warning>
+
+## What changes from Project 1
+
+You should already be comfortable with functions, loops, dictionaries, lists, file I/O, `Path`, JSON, `argparse`, and basic exception handling. This project deliberately provides less hand-holding on those concepts and introduces new ideas:
+
+- JSON Lines (`.jsonl`) telemetry;
+- nested dictionaries;
+- `collections.Counter`;
+- `collections.defaultdict`;
+- timestamp parsing;
+- sorting events chronologically;
+- aggregation;
+- grouping events by identity;
+- stateful sequence analysis;
+- configurable detection thresholds;
+- separating raw events, summaries, and findings;
+- generating an analyst-oriented report.
+
+## Final project structure
+
+```text
+auth-log-summarizer/
+├── auth_summarizer.py
+├── sample_auth.jsonl
+├── output/
+└── README.md
+```
+
+No third-party Python packages are required.
+
+---
+
+# Lesson 1 — Understand authentication telemetry
+
+Before writing detection logic, understand the data.
+
+For this project, every authentication event will contain:
+
+| Field | Meaning |
+| --- | --- |
+| `timestamp` | When the event occurred |
+| `username` | Account attempting authentication |
+| `source_ip` | Address initiating the authentication |
+| `destination` | System receiving the authentication |
+| `result` | `success` or `failure` |
+| `event_id` | Synthetic event identifier |
+
+Create `sample_auth.jsonl`:
+
+```json
+{"timestamp":"2026-01-15T10:00:00Z","username":"alice","source_ip":"192.0.2.10","destination":"server-01","result":"failure","event_id":1001}
+{"timestamp":"2026-01-15T10:01:00Z","username":"alice","source_ip":"192.0.2.10","destination":"server-01","result":"failure","event_id":1002}
+{"timestamp":"2026-01-15T10:02:00Z","username":"bob","source_ip":"198.51.100.20","destination":"server-02","result":"success","event_id":1003}
+{"timestamp":"2026-01-15T10:03:00Z","username":"alice","source_ip":"192.0.2.10","destination":"server-01","result":"failure","event_id":1004}
+{"timestamp":"2026-01-15T10:04:00Z","username":"alice","source_ip":"192.0.2.10","destination":"server-01","result":"success","event_id":1005}
+{"timestamp":"2026-01-15T10:05:00Z","username":"charlie","source_ip":"203.0.113.44","destination":"server-03","result":"failure","event_id":1006}
+{"timestamp":"2026-01-15T10:06:00Z","username":"charlie","source_ip":"203.0.113.44","destination":"server-03","result":"failure","event_id":1007}
+```
+
+The IP ranges are reserved for documentation.
+
+## Why JSONL?
+
+JSON Lines stores one JSON object per line. This resembles many exported security datasets and allows a program to process events individually rather than loading one giant JSON array.
+
+```text
+line 1 → event
+line 2 → event
+line 3 → event
+```
+
+That becomes important when datasets grow.
+
+---
+
+# Lesson 2 — Parse one event
+
+Import JSON:
+
+```python
+import json
+```
+
+A line from the file is initially just a string. `json.loads()` converts that string into Python objects.
+
+```python
+line = '{"username":"alice","result":"failure"}'
+event = json.loads(line)
+
+print(event)
+print(event["username"])
+```
+
+Expected:
+
+```text
+{'username': 'alice', 'result': 'failure'}
+alice
+```
+
+## Dictionaries revisited
+
+An event is naturally represented as a dictionary because each field has a name.
+
+```python
+username = event["username"]
+result = event["result"]
+```
+
+If a required key is missing, direct access raises `KeyError`. In security telemetry, malformed or incomplete events should be expected rather than assumed impossible.
+
+---
+
+# Lesson 3 — Validate event structure
+
+Define the fields your program requires:
+
+```python
+REQUIRED_FIELDS = {
+    "timestamp",
+    "username",
+    "source_ip",
+    "destination",
+    "result",
+    "event_id",
+}
+```
+
+Create a validator:
+
+```python
+def validate_event(event: dict) -> tuple[bool, str | None]:
+    """Validate the fields required by this project."""
+    missing = REQUIRED_FIELDS - event.keys()
+
+    if missing:
+        return False, f"missing fields: {', '.join(sorted(missing))}"
+
+    if event["result"] not in {"success", "failure"}:
+        return False, "result must be success or failure"
+
+    return True, None
+```
+
+## New concept: set difference
+
+`REQUIRED_FIELDS - event.keys()` asks: which required fields are not present in the event?
+
+This is clearer than writing six separate `if` statements.
+
+## Why return two values?
+
+The function returns both a Boolean result and an explanation:
+
+```python
+valid, reason = validate_event(event)
+```
+
+This makes rejected telemetry explainable.
+
+---
+
+# Lesson 4 — Parse timestamps
+
+Event order matters when analyzing behavior.
+
+Import:
+
+```python
+from datetime import datetime
+```
+
+Add:
+
+```python
+def parse_timestamp(value: str) -> datetime:
+    """Convert an ISO 8601 timestamp ending in Z to a datetime."""
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+```
+
+Test:
+
+```python
+stamp = parse_timestamp("2026-01-15T10:00:00Z")
+print(stamp)
+```
+
+A string may *look* like a timestamp, but a `datetime` object can be sorted and compared chronologically with clear semantics.
+
+<Info>
+Security data may contain multiple timestamp formats and time zones. Production parsers need explicit timestamp normalization. This project controls the input format so you can first learn the core concept.
+</Info>
+
+---
+
+# Lesson 5 — Read JSONL safely
+
+Create the reader:
+
+```python
+from pathlib import Path
+
+
+def read_events(file_path: Path) -> tuple[list[dict], list[dict]]:
+    """Read and validate JSONL authentication events."""
+    events = []
+    rejected = []
+
+    with file_path.open("r", encoding="utf-8") as file:
+        for line_number, line in enumerate(file, start=1):
+            line = line.strip()
+
+            if not line:
+                continue
+
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError as exc:
+                rejected.append({
+                    "line": line_number,
+                    "reason": f"invalid JSON: {exc.msg}",
+                })
+                continue
+
+            if not isinstance(event, dict):
+                rejected.append({
+                    "line": line_number,
+                    "reason": "event must be a JSON object",
+                })
+                continue
+
+            valid, reason = validate_event(event)
+
+            if not valid:
+                rejected.append({"line": line_number, "reason": reason})
+                continue
+
+            try:
+                event["_timestamp"] = parse_timestamp(event["timestamp"])
+            except (TypeError, ValueError):
+                rejected.append({
+                    "line": line_number,
+                    "reason": "invalid timestamp",
+                })
+                continue
+
+            events.append(event)
+
+    return events, rejected
+```
+
+## New concept: `enumerate()`
+
+`enumerate()` gives you both an item and its position:
+
+```python
+for line_number, line in enumerate(file, start=1):
+```
+
+Line numbers make error reports actionable. "Invalid JSON" is less useful than "Invalid JSON on line 14."
+
+## Why keep rejected records?
+
+Silently discarding malformed telemetry can hide collection or parsing problems. Defensive tooling should make data-quality failures visible.
+
+---
+
+# Lesson 6 — Sort the timeline
+
+Even if the sample file is ordered, never build sequence logic around that assumption unless the data contract guarantees it.
+
+```python
+def sort_events(events: list[dict]) -> list[dict]:
+    """Return events sorted by parsed timestamp."""
+    return sorted(events, key=lambda event: event["_timestamp"])
+```
+
+## New concept: `lambda`
+
+A lambda is a small anonymous function. Here it tells `sorted()` which value to use as the sort key.
+
+Equivalent longer form:
+
+```python
+def timestamp_key(event):
+    return event["_timestamp"]
+```
+
+For a tiny operation, the lambda is concise.
+
+---
+
+# Lesson 7 — Count outcomes by user
+
+Python's `Counter` is designed for counting hashable values.
+
+```python
+from collections import Counter
+```
+
+Start simple:
+
+```python
+failures_by_user = Counter()
+
+for event in events:
+    if event["result"] == "failure":
+        failures_by_user[event["username"]] += 1
+```
+
+Result conceptually:
+
+```python
+Counter({"alice": 3, "charlie": 2})
+```
+
+Now build a complete user summary:
+
+```python
+def summarize_users(events: list[dict]) -> dict[str, dict[str, int]]:
+    """Count authentication outcomes for each username."""
+    summary = {}
+
+    for event in events:
+        username = event["username"]
+
+        if username not in summary:
+            summary[username] = {"successes": 0, "failures": 0}
+
+        if event["result"] == "success":
+            summary[username]["successes"] += 1
+        else:
+            summary[username]["failures"] += 1
+
+    return summary
+```
+
+## Nested dictionaries
+
+The structure becomes:
+
+```python
+{
+    "alice": {
+        "successes": 1,
+        "failures": 3
+    }
+}
+```
+
+This is a common pattern in analysis programs: an entity key maps to a collection of metrics about that entity.
+
+---
+
+# Lesson 8 — Count failures by source IP
+
+This task is a good fit for `Counter`:
+
+```python
+def failures_by_source(events: list[dict]) -> Counter:
+    """Count failed authentications by source IP."""
+    counts = Counter()
+
+    for event in events:
+        if event["result"] == "failure":
+            counts[event["source_ip"]] += 1
+
+    return counts
+```
+
+Try:
+
+```python
+print(failures_by_source(events).most_common())
+```
+
+`most_common()` sorts the highest counts first, which is useful for analyst triage.
+
+## Analytical caution
+
+High failure counts can be useful prioritization signals, but volume alone does not establish maliciousness. Context matters: source type, user population, time window, authentication protocol, expected automation, and environment all influence interpretation.
+
+---
+
+# Lesson 9 — Group events by account
+
+To detect a sequence such as failures followed by success, group events by username.
+
+Import:
+
+```python
+from collections import defaultdict
+```
+
+Add:
+
+```python
+def group_by_user(events: list[dict]) -> dict[str, list[dict]]:
+    """Group chronologically sorted events by username."""
+    grouped = defaultdict(list)
+
+    for event in events:
+        grouped[event["username"]].append(event)
+
+    return dict(grouped)
+```
+
+## Why `defaultdict(list)`?
+
+With a normal dictionary, you would need to initialize a list before appending:
+
+```python
+if username not in grouped:
+    grouped[username] = []
+```
+
+A `defaultdict(list)` creates an empty list automatically when a new key is encountered.
+
+---
+
+# Lesson 10 — Think about detection as state
+
+Suppose the threshold is three failures.
+
+For Alice:
+
+```text
+10:00 failure
+10:01 failure
+10:03 failure
+10:04 success
+```
+
+The program must remember that three failures occurred before the success.
+
+This is **stateful analysis**. The meaning of the current event depends on what happened earlier.
+
+A simple state variable can represent that history:
+
+```python
+consecutive_failures = 0
+```
+
+On failure:
+
+```python
+consecutive_failures += 1
+```
+
+On success, inspect the state and then reset it:
+
+```python
+if consecutive_failures >= threshold:
+    # create finding
+
+consecutive_failures = 0
+```
+
+This idea appears repeatedly in detection engineering, streaming analytics, protocol analysis, and behavioral monitoring.
+
+---
+
+# Lesson 11 — Detect failures followed by success
+
+Create:
+
+```python
+def detect_failure_then_success(
+    events: list[dict], threshold: int
+) -> list[dict]:
+    """Find users with threshold consecutive failures followed by success."""
+    findings = []
+    grouped = group_by_user(events)
+
+    for username, user_events in grouped.items():
+        consecutive_failures = 0
+        first_failure = None
+        last_failure = None
+        failure_sources = set()
+
+        for event in user_events:
+            if event["result"] == "failure":
+                if consecutive_failures == 0:
+                    first_failure = event
+
+                consecutive_failures += 1
+                last_failure = event
+                failure_sources.add(event["source_ip"])
+                continue
+
+            if event["result"] == "success":
+                if consecutive_failures >= threshold:
+                    findings.append({
+                        "username": username,
+                        "failure_count": consecutive_failures,
+                        "first_failure": first_failure["timestamp"],
+                        "last_failure": last_failure["timestamp"],
+                        "success_time": event["timestamp"],
+                        "failure_source_ips": sorted(failure_sources),
+                        "success_source_ip": event["source_ip"],
+                        "destination": event["destination"],
+                    })
+
+                consecutive_failures = 0
+                first_failure = None
+                last_failure = None
+                failure_sources = set()
+
+    return findings
+```
+
+## Walk through the logic
+
+The outer loop analyzes one account at a time. The inner loop moves chronologically through that account's events.
+
+`consecutive_failures` records how many failures have occurred since the last success.
+
+`first_failure` and `last_failure` preserve timeline context.
+
+`failure_sources` preserves all source IPs involved in the failure sequence.
+
+When a success arrives, the program asks whether the prior failure count met the configured threshold. If so, it creates a finding.
+
+Then the state resets for the next sequence.
+
+<Warning>
+This beginner analytic does not yet implement a time window. Three failures over six months followed by a success would still match if they were consecutive in the dataset. You will address this limitation in a stretch exercise.
+</Warning>
+
+---
+
+# Lesson 12 — Add a configurable threshold
+
+In Project 1 you used `argparse`. Reuse that skill instead of hard-coding `3`.
+
+```python
+import argparse
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Summarize authentication telemetry and identify simple login patterns."
+    )
+    parser.add_argument("input", type=Path, help="JSONL authentication log")
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=Path("output/auth_summary.json"),
+        help="JSON report path",
+    )
+    parser.add_argument(
+        "--failure-threshold",
+        type=int,
+        default=3,
+        help="Consecutive failures required before a success creates a finding",
+    )
+    return parser.parse_args()
+```
+
+Validate user input in `main()`:
+
+```python
+if args.failure_threshold < 1:
+    print("Error: --failure-threshold must be at least 1")
+    return 1
+```
+
+Configuration makes analytical assumptions visible to the user.
+
+---
+
+# Lesson 13 — Build an overall summary
+
+Create a report structure that separates high-level metrics from detailed findings.
+
+```python
+def build_report(events: list[dict], rejected: list[dict], threshold: int) -> dict:
+    user_summary = summarize_users(events)
+    source_failures = failures_by_source(events)
+    findings = detect_failure_then_success(events, threshold)
+
+    success_count = sum(1 for event in events if event["result"] == "success")
+    failure_count = sum(1 for event in events if event["result"] == "failure")
+
+    return {
+        "summary": {
+            "total_events": len(events),
+            "successful_authentications": success_count,
+            "failed_authentications": failure_count,
+            "unique_users": len(user_summary),
+            "rejected_records": len(rejected),
+            "failure_threshold": threshold,
+            "findings": len(findings),
+        },
+        "users": user_summary,
+        "failures_by_source_ip": dict(source_failures.most_common()),
+        "findings": findings,
+        "rejected": rejected,
+    }
+```
+
+## New concept: generator expressions
+
+This expression:
+
+```python
+sum(1 for event in events if event["result"] == "success")
+```
+
+means: generate a `1` for every matching event and sum those values.
+
+It avoids building an unnecessary intermediate list.
+
+---
+
+# Lesson 14 — Keep internal fields out of output
+
+Earlier, you added `_timestamp` to each event for sorting. The underscore is a convention indicating that the field is internal to your program.
+
+Your final report does not need to export the raw event list, so `_timestamp` never needs to be serialized. This illustrates a useful design principle:
+
+```text
+input representation ≠ internal representation ≠ output representation
+```
+
+A program may transform data internally for analysis without exposing every implementation detail in its output.
+
+---
+
+# Lesson 15 — Print an analyst-friendly console summary
+
+Machine-readable JSON is useful for automation, but analysts also need quick terminal feedback.
+
+```python
+def print_summary(report: dict) -> None:
+    summary = report["summary"]
+
+    print("Authentication Analysis Summary")
+    print("=" * 31)
+    print(f"Events processed: {summary['total_events']}")
+    print(f"Successful logins: {summary['successful_authentications']}")
+    print(f"Failed logins: {summary['failed_authentications']}")
+    print(f"Unique users: {summary['unique_users']}")
+    print(f"Rejected records: {summary['rejected_records']}")
+    print(f"Findings: {summary['findings']}")
+
+    if report["findings"]:
+        print("\nReview candidates:")
+        for finding in report["findings"]:
+            print(
+                f"  - {finding['username']}: "
+                f"{finding['failure_count']} failures followed by success "
+                f"at {finding['success_time']}"
+            )
+```
+
+Notice the wording **Review candidates** rather than **Compromised accounts**. Good security tooling should not claim more than the evidence supports.
+
+---
+
+# Lesson 16 — Export the report
+
+Reuse the JSON-writing pattern from Project 1:
+
+```python
+def write_report(report: dict, output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with output_path.open("w", encoding="utf-8") as file:
+        json.dump(report, file, indent=2)
+```
+
+The output now becomes an artifact that can be reviewed, archived, compared, or consumed by another program.
+
+---
+
+# Lesson 17 — Assemble `main()`
+
+```python
+def main() -> int:
+    args = parse_args()
+
+    if not args.input.exists():
+        print(f"Error: input file does not exist: {args.input}")
+        return 1
+
+    if not args.input.is_file():
+        print(f"Error: input path is not a file: {args.input}")
+        return 1
+
+    if args.failure_threshold < 1:
+        print("Error: --failure-threshold must be at least 1")
+        return 1
+
+    try:
+        events, rejected = read_events(args.input)
+        events = sort_events(events)
+        report = build_report(events, rejected, args.failure_threshold)
+        write_report(report, args.output)
+    except (OSError, UnicodeError) as exc:
+        print(f"Error: {exc}")
+        return 1
+
+    print_summary(report)
+    print(f"\nReport written to: {args.output}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```
+
+The high-level program flow is now easy to read:
+
+```text
+parse arguments
+      ↓
+validate paths/settings
+      ↓
+read + validate telemetry
+      ↓
+sort events
+      ↓
+analyze
+      ↓
+build report
+      ↓
+write JSON
+      ↓
+print summary
+```
+
+---
+
+# Lesson 18 — Assemble the final program
+
+Your finished `auth_summarizer.py` should be:
+
+```python
+import argparse
+import json
+from collections import Counter, defaultdict
+from datetime import datetime
+from pathlib import Path
+
+
+REQUIRED_FIELDS = {
+    "timestamp",
+    "username",
+    "source_ip",
+    "destination",
+    "result",
+    "event_id",
+}
+
+
+def validate_event(event: dict) -> tuple[bool, str | None]:
+    """Validate the fields required by this project."""
+    missing = REQUIRED_FIELDS - event.keys()
+
+    if missing:
+        return False, f"missing fields: {', '.join(sorted(missing))}"
+
+    if event["result"] not in {"success", "failure"}:
+        return False, "result must be success or failure"
+
+    return True, None
+
+
+def parse_timestamp(value: str) -> datetime:
+    """Convert an ISO 8601 timestamp ending in Z to a datetime."""
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def read_events(file_path: Path) -> tuple[list[dict], list[dict]]:
+    """Read and validate JSONL authentication events."""
+    events = []
+    rejected = []
+
+    with file_path.open("r", encoding="utf-8") as file:
+        for line_number, line in enumerate(file, start=1):
+            line = line.strip()
+
+            if not line:
+                continue
+
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError as exc:
+                rejected.append({
+                    "line": line_number,
+                    "reason": f"invalid JSON: {exc.msg}",
+                })
+                continue
+
+            if not isinstance(event, dict):
+                rejected.append({
+                    "line": line_number,
+                    "reason": "event must be a JSON object",
+                })
+                continue
+
+            valid, reason = validate_event(event)
+
+            if not valid:
+                rejected.append({"line": line_number, "reason": reason})
+                continue
+
+            try:
+                event["_timestamp"] = parse_timestamp(event["timestamp"])
+            except (TypeError, ValueError):
+                rejected.append({
+                    "line": line_number,
+                    "reason": "invalid timestamp",
+                })
+                continue
+
+            events.append(event)
+
+    return events, rejected
+
+
+def sort_events(events: list[dict]) -> list[dict]:
+    """Return events sorted by parsed timestamp."""
+    return sorted(events, key=lambda event: event["_timestamp"])
+
+
+def summarize_users(events: list[dict]) -> dict[str, dict[str, int]]:
+    """Count authentication outcomes for each username."""
+    summary = {}
+
+    for event in events:
+        username = event["username"]
+
+        if username not in summary:
+            summary[username] = {"successes": 0, "failures": 0}
+
+        if event["result"] == "success":
+            summary[username]["successes"] += 1
+        else:
+            summary[username]["failures"] += 1
+
+    return summary
+
+
+def failures_by_source(events: list[dict]) -> Counter:
+    """Count failed authentications by source IP."""
+    counts = Counter()
+
+    for event in events:
+        if event["result"] == "failure":
+            counts[event["source_ip"]] += 1
+
+    return counts
+
+
+def group_by_user(events: list[dict]) -> dict[str, list[dict]]:
+    """Group chronologically sorted events by username."""
+    grouped = defaultdict(list)
+
+    for event in events:
+        grouped[event["username"]].append(event)
+
+    return dict(grouped)
+
+
+def detect_failure_then_success(
+    events: list[dict], threshold: int
+) -> list[dict]:
+    """Find users with threshold consecutive failures followed by success."""
+    findings = []
+    grouped = group_by_user(events)
+
+    for username, user_events in grouped.items():
+        consecutive_failures = 0
+        first_failure = None
+        last_failure = None
+        failure_sources = set()
+
+        for event in user_events:
+            if event["result"] == "failure":
+                if consecutive_failures == 0:
+                    first_failure = event
+
+                consecutive_failures += 1
+                last_failure = event
+                failure_sources.add(event["source_ip"])
+                continue
+
+            if event["result"] == "success":
+                if consecutive_failures >= threshold:
+                    findings.append({
+                        "username": username,
+                        "failure_count": consecutive_failures,
+                        "first_failure": first_failure["timestamp"],
+                        "last_failure": last_failure["timestamp"],
+                        "success_time": event["timestamp"],
+                        "failure_source_ips": sorted(failure_sources),
+                        "success_source_ip": event["source_ip"],
+                        "destination": event["destination"],
+                    })
+
+                consecutive_failures = 0
+                first_failure = None
+                last_failure = None
+                failure_sources = set()
+
+    return findings
+
+
+def build_report(events: list[dict], rejected: list[dict], threshold: int) -> dict:
+    user_summary = summarize_users(events)
+    source_failures = failures_by_source(events)
+    findings = detect_failure_then_success(events, threshold)
+
+    success_count = sum(1 for event in events if event["result"] == "success")
+    failure_count = sum(1 for event in events if event["result"] == "failure")
+
+    return {
+        "summary": {
+            "total_events": len(events),
+            "successful_authentications": success_count,
+            "failed_authentications": failure_count,
+            "unique_users": len(user_summary),
+            "rejected_records": len(rejected),
+            "failure_threshold": threshold,
+            "findings": len(findings),
+        },
+        "users": user_summary,
+        "failures_by_source_ip": dict(source_failures.most_common()),
+        "findings": findings,
+        "rejected": rejected,
+    }
+
+
+def write_report(report: dict, output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with output_path.open("w", encoding="utf-8") as file:
+        json.dump(report, file, indent=2)
+
+
+def print_summary(report: dict) -> None:
+    summary = report["summary"]
+
+    print("Authentication Analysis Summary")
+    print("=" * 31)
+    print(f"Events processed: {summary['total_events']}")
+    print(f"Successful logins: {summary['successful_authentications']}")
+    print(f"Failed logins: {summary['failed_authentications']}")
+    print(f"Unique users: {summary['unique_users']}")
+    print(f"Rejected records: {summary['rejected_records']}")
+    print(f"Findings: {summary['findings']}")
+
+    if report["findings"]:
+        print("\nReview candidates:")
+        for finding in report["findings"]:
+            print(
+                f"  - {finding['username']}: "
+                f"{finding['failure_count']} failures followed by success "
+                f"at {finding['success_time']}"
+            )
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Summarize authentication telemetry and identify simple login patterns."
+    )
+    parser.add_argument("input", type=Path, help="JSONL authentication log")
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=Path("output/auth_summary.json"),
+        help="JSON report path",
+    )
+    parser.add_argument(
+        "--failure-threshold",
+        type=int,
+        default=3,
+        help="Consecutive failures required before a success creates a finding",
+    )
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+
+    if not args.input.exists():
+        print(f"Error: input file does not exist: {args.input}")
+        return 1
+
+    if not args.input.is_file():
+        print(f"Error: input path is not a file: {args.input}")
+        return 1
+
+    if args.failure_threshold < 1:
+        print("Error: --failure-threshold must be at least 1")
+        return 1
+
+    try:
+        events, rejected = read_events(args.input)
+        events = sort_events(events)
+        report = build_report(events, rejected, args.failure_threshold)
+        write_report(report, args.output)
+    except (OSError, UnicodeError) as exc:
+        print(f"Error: {exc}")
+        return 1
+
+    print_summary(report)
+    print(f"\nReport written to: {args.output}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```
+
+---
+
+# Lesson 19 — Run the project
+
+Run with the default threshold of three:
+
+```bash
+python3 auth_summarizer.py sample_auth.jsonl
+```
+
+Expected console summary:
+
+```text
+Authentication Analysis Summary
+===============================
+Events processed: 7
+Successful logins: 2
+Failed logins: 5
+Unique users: 3
+Rejected records: 0
+Findings: 1
+
+Review candidates:
+  - alice: 3 failures followed by success at 2026-01-15T10:04:00Z
+
+Report written to: output/auth_summary.json
+```
+
+Try changing the analytic:
+
+```bash
+python3 auth_summarizer.py sample_auth.jsonl --failure-threshold 2
+```
+
+Ask yourself **why the findings change**. Understanding the effect of thresholds is part of detection engineering.
+
+---
+
+# Lesson 20 — Inspect the JSON report
+
+The report should resemble:
+
+```json
+{
+  "summary": {
+    "total_events": 7,
+    "successful_authentications": 2,
+    "failed_authentications": 5,
+    "unique_users": 3,
+    "rejected_records": 0,
+    "failure_threshold": 3,
+    "findings": 1
+  },
+  "users": {
+    "alice": {
+      "successes": 1,
+      "failures": 3
+    },
+    "bob": {
+      "successes": 1,
+      "failures": 0
+    },
+    "charlie": {
+      "successes": 0,
+      "failures": 2
+    }
+  },
+  "failures_by_source_ip": {
+    "192.0.2.10": 3,
+    "203.0.113.44": 2
+  },
+  "findings": [
+    {
+      "username": "alice",
+      "failure_count": 3,
+      "first_failure": "2026-01-15T10:00:00Z",
+      "last_failure": "2026-01-15T10:03:00Z",
+      "success_time": "2026-01-15T10:04:00Z",
+      "failure_source_ips": ["192.0.2.10"],
+      "success_source_ip": "192.0.2.10",
+      "destination": "server-01"
+    }
+  ],
+  "rejected": []
+}
+```
+
+The report contains both statistics and the supporting context needed for further analyst review.
+
+---
+
+# Lesson 21 — Test failure conditions
+
+Add deliberately malformed lines to a copy of the sample file.
+
+### Invalid JSON
+
+```text
+this is not json
+```
+
+### Missing field
+
+```json
+{"timestamp":"2026-01-15T11:00:00Z","username":"dave","result":"failure"}
+```
+
+### Unsupported result
+
+```json
+{"timestamp":"2026-01-15T11:01:00Z","username":"dave","source_ip":"192.0.2.50","destination":"server-01","result":"unknown","event_id":2001}
+```
+
+### Invalid timestamp
+
+```json
+{"timestamp":"yesterday","username":"dave","source_ip":"192.0.2.50","destination":"server-01","result":"failure","event_id":2002}
+```
+
+The application should continue processing valid records while recording why invalid records were rejected.
+
+This is an important operational property: one malformed event should not necessarily destroy an entire batch analysis.
+
+---
+
+# Lesson 22 — Debug using the data pipeline
+
+When results look wrong, isolate the stage producing the error:
+
+```text
+Was the JSON parsed?
+       ↓
+Did validation accept the event?
+       ↓
+Was the timestamp parsed correctly?
+       ↓
+Was the timeline sorted?
+       ↓
+Was the event grouped under the expected user?
+       ↓
+Did the counter/state change as expected?
+       ↓
+Was the finding created?
+       ↓
+Was the report serialized correctly?
+```
+
+Temporary diagnostic statements can help:
+
+```python
+print(username, event["result"], consecutive_failures)
+```
+
+Remove noisy debugging output when you understand the issue.
+
+---
+
+# Lesson 23 — Document the project
+
+Your `README.md` should explain both the software and the analytic.
+
+Suggested structure:
+
+```markdown
+# Authentication Log Summarizer
+
+## Purpose
+Analyze synthetic authentication telemetry and summarize login outcomes.
+
+## Analytical Objective
+Identify accounts with configurable consecutive authentication failures followed by a successful authentication.
+
+## Requirements
+Python 3.10+
+
+## Input Format
+JSONL with timestamp, username, source_ip, destination, result, and event_id.
+
+## Usage
+python3 auth_summarizer.py sample_auth.jsonl --failure-threshold 3
+
+## Output
+Console summary plus JSON report.
+
+## Interpretation
+A finding is a review candidate and does not establish account compromise.
+
+## Limitations
+The initial analytic does not constrain failures to a time window and groups primarily by username.
+
+## Security
+The project operates on local synthetic or authorized telemetry and makes no network connections.
+```
+
+---
+
+# Knowledge check
+
+Before using the final code as a reference, make sure you can explain:
+
+1. Why is JSONL useful for event telemetry?
+2. Why validate required fields before analyzing an event?
+3. What problem does `enumerate()` solve?
+4. Why convert timestamp strings into `datetime` objects?
+5. What does `Counter` provide that a normal integer does not?
+6. When is `defaultdict(list)` useful?
+7. Why must events be sorted before sequence detection?
+8. What does `consecutive_failures` represent?
+9. Why is the detection described as a review candidate rather than a compromise?
+10. Why should thresholds be configurable?
+11. What is the difference between aggregation and sequence analysis?
+12. Why preserve rejected telemetry information?
+
+---
+
+# Independent challenge — Add a time window
+
+The current analytic has an important weakness: it counts consecutive failures regardless of how much time passed between them.
+
+Improve the command:
+
+```bash
+python3 auth_summarizer.py sample_auth.jsonl \
+  --failure-threshold 3 \
+  --window-minutes 10
+```
+
+Desired behavior:
+
+```text
+3 failures within 10 minutes → followed by success → finding
+3 failures across 4 hours → followed by success → no finding
+```
+
+Hints:
+
+- you already have `_timestamp` as a `datetime`;
+- subtracting two datetime objects creates a `timedelta`;
+- compare the elapsed duration to your configured window;
+- think carefully about when old failures should leave the active sequence.
+
+Do not immediately search for a completed solution. Draw the state transitions first.
+
+---
+
+# Stretch challenges
+
+After the core project works, choose several:
+
+- add the time-window capability;
+- group by `(username, source_ip)` instead of only username;
+- detect one source failing against many usernames;
+- detect a success from a different source than the preceding failures;
+- add destination-level statistics;
+- export findings as CSV;
+- add `--top 10` for highest failure sources;
+- write unit tests for `validate_event()` and the detection function;
+- add an `event_count` and analysis timestamp to report metadata;
+- process a much larger generated JSONL file without loading every event into memory;
+- map the analytic concept to relevant MITRE ATT&CK techniques while clearly documenting that mappings are contextual, not proof of adversary behavior.
+
+## Detection-engineering bridge
+
+Once you implement a time window, compare your Python analytic conceptually with how the same behavior might be represented in a SIEM query language.
+
+Ask:
+
+```text
+What are my grouping keys?
+What is my threshold?
+What is my time window?
+What event represents failure?
+What event represents success?
+What evidence should appear in the alert?
+What benign behaviors might produce the same pattern?
+```
+
+Those questions are more important than memorizing any specific query syntax.
+
+---
+
+# Completion criteria
+
+Project 2 is complete when your tool can:
+
+- accept a JSONL authentication file from the CLI;
+- parse one event per line;
+- reject malformed JSON without terminating the analysis;
+- validate required fields;
+- parse and sort timestamps;
+- count successes and failures by user;
+- count failures by source IP;
+- group events by user;
+- identify a configurable number of consecutive failures followed by success;
+- preserve evidence supporting each finding;
+- clearly label findings as review candidates;
+- report rejected telemetry;
+- print a concise console summary;
+- export a structured JSON report;
+- handle missing files and invalid thresholds cleanly;
+- document assumptions and limitations in a README.
+
+More importantly, you should be able to explain the analytical pipeline:
+
+```text
+Raw Authentication Events
+          ↓
+       Parsing
+          ↓
+      Validation
+          ↓
+ Timestamp Conversion
+          ↓
+       Sorting
+          ↓
+   Aggregation / Grouping
+          ↓
+ Stateful Sequence Analysis
+          ↓
+        Findings
+          ↓
+ Analyst Summary + JSON Report
+```
+
+## Reference material
+
+- [Python `json`](https://docs.python.org/3/library/json.html)
+- [Python `collections`](https://docs.python.org/3/library/collections.html)
+- [Python `datetime`](https://docs.python.org/3/library/datetime.html)
+- [Python `pathlib`](https://docs.python.org/3/library/pathlib.html)
+- [Python `argparse`](https://docs.python.org/3/library/argparse.html)
+- [Python `sorted`](https://docs.python.org/3/library/functions.html#sorted)
+- [MITRE ATT&CK](https://attack.mitre.org/)
+
+<CardGroup cols={2}>
+  <Card title="Previous: IOC Normalizer" icon="arrow-left" href="/training/python/projects/ioc-normalizer">
+    Review Project 1 and the Python foundations used here.
+  </Card>
+  <Card title="Return to Python Beginner" icon="list" href="/training/python/beginner">
+    Return to the beginner project path.
+  </Card>
+</CardGroup>
