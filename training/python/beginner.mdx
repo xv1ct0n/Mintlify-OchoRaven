@@ -58,20 +58,28 @@ Follow the complete lesson-by-lesson walkthrough. You will learn each Python con
 
 ## Project 2 — Authentication Log Summarizer
 
-**Intent:** Learn file processing, dictionaries, functions, and aggregation using security telemetry.
+**Intent:** Learn file processing, dictionaries, aggregation, timestamp handling, grouping, and basic stateful detection logic using security telemetry.
 
-**Capability:** Analyze a synthetic authentication log and summarize successful and failed logins by user and source IP.
+**Capability:** Analyze synthetic authentication telemetry, summarize successful and failed logins by user and source IP, and identify repeated failures followed by a successful authentication as an analyst review candidate.
 
-### Tasks
+<Card title="Start Project 2: Authentication Log Summarizer" icon="user-shield" href="/training/python/projects/auth-log-summarizer">
+Build a functional authentication-analysis utility through a progressive walkthrough covering JSONL telemetry, validation, Counter, defaultdict, timelines, aggregation, stateful analysis, configurable thresholds, and structured reporting.
+</Card>
 
-1. Parse each record into meaningful fields.
-2. Count failures and successes by username.
-3. Count failures by source IP.
-4. Identify accounts with repeated failures followed by a success.
-5. Print a concise analyst summary.
-6. Export findings to JSON.
+### Core objectives
 
-**Stretch goal:** Add configurable thresholds such as `--failure-threshold 5`.
+1. Parse JSONL authentication events.
+2. Validate required telemetry fields and timestamps.
+3. Sort events chronologically.
+4. Count failures and successes by username.
+5. Count failures by source IP.
+6. Group related events by account.
+7. Identify configurable consecutive failures followed by a success.
+8. Preserve supporting context for analyst review.
+9. Print a concise analyst summary.
+10. Export findings and statistics to JSON.
+
+**Independent challenge:** Add a configurable time window so failures must occur within a defined period before the successful authentication.
 
 ## Project 3 — File Hash Inventory
 
