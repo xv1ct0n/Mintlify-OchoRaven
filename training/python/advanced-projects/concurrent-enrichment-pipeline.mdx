@@ -1,0 +1,216 @@
+---
+title: "Project 1: Concurrent Enrichment Pipeline"
+description: "Scale enrichment with bounded workers, per-provider rate limits, retries, caching, and operational metrics."
+---
+# Project 1: Concurrent Enrichment Pipeline
+
+**Intent:** Scale enrichment with bounded workers, per-provider rate limits, retries, caching, and operational metrics.
+
+**Result:** A working utility, synthetic fixture, expected output, and a verification check. The project is designed for authorized lab data and can be adapted after you inspect the real data/API contract.
+
+## Learning objectives
+
+1. Provider abstraction — Each provider is a callable paired with its own limiter. Fixture mode makes the same work queue testable without consuming quotas.
+2. Bound concurrency — A thread pool limits active jobs and preserves final output order. The limiter spaces each provider's request starts even when more workers are available.
+3. Retry deliberately — Retry timeouts, connectivity problems, HTTP 429, and selected server errors with exponential backoff and jitter. Fail other client errors immediately.
+4. Coordinate state — A lock protects shared cache and metrics. The output distinguishes fresh calls from cache hits and records elapsed time. JSON persistence is only safe for a single process.
+
+## Prerequisites and setup
+
+Use Python 3.11 or newer. Create an empty project folder. Run python -m venv .venv and activate it. Use python3 where your system requires it. Save the code below with the exact filename shown. Keep generated output, secrets, and local caches outside version control.
+
+Read through the lessons before copying the full listing. After each lesson, find the corresponding function and explain its input, output, and failure behavior.
+
+## Component lessons
+
+### Lesson 1: Provider abstraction
+
+Each provider is a callable paired with its own limiter. Fixture mode makes the same work queue testable without consuming quotas.
+
+### Lesson 2: Bound concurrency
+
+A thread pool limits active jobs and preserves final output order. The limiter spaces each provider's request starts even when more workers are available.
+
+### Lesson 3: Retry deliberately
+
+Retry timeouts, connectivity problems, HTTP 429, and selected server errors with exponential backoff and jitter. Fail other client errors immediately.
+
+### Lesson 4: Coordinate state
+
+A lock protects shared cache and metrics. The output distinguishes fresh calls from cache hits and records elapsed time. JSON persistence is only safe for a single process.
+
+## Step 1: Build the program
+
+Save this complete reference implementation as `concurrent_enrichment.py`. The standard-library projects need no third-party package. The advanced validator and API service declare their dependencies below.
+
+```python
+"""Bounded, rate-limited enrichment of indicators from a fixture or HTTPS API."""
+import argparse
+import json
+import os
+import random
+import threading
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+
+
+class RateLimiter:
+    def __init__(self, per_second):
+        self.interval = 1 / per_second
+        self.lock = threading.Lock()
+        self.next_at = 0.0
+
+    def wait(self):
+        with self.lock:
+            delay = max(0, self.next_at - time.monotonic())
+            if delay:
+                time.sleep(delay)
+            self.next_at = time.monotonic() + self.interval
+
+
+def request_json(base, key, indicator, timeout):
+    url = base.rstrip("/") + "/indicators/" + urllib.parse.quote(indicator, safe="")
+    request = urllib.request.Request(url, headers={"Authorization": f"Bearer {key}"})
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return json.load(response)
+
+
+def run(indicators, providers, cache_path, workers=4, attempts=3):
+    try:
+        cache = json.loads(cache_path.read_text())
+    except (FileNotFoundError, json.JSONDecodeError):
+        cache = {}
+    lock = threading.Lock()
+    metrics = {"success": 0, "failure": 0, "cache_hit": 0}
+    jobs = [(indicator, name) for indicator in dict.fromkeys(indicators) for name in providers]
+
+    def one(job):
+        indicator, name = job
+        cache_key = name + ":" + indicator
+        with lock:
+            if cache_key in cache:
+                metrics["cache_hit"] += 1
+                return {"indicator": indicator, "provider": name, "data": cache[cache_key], "cached": True}
+        call, limiter = providers[name]
+        for attempt in range(attempts):
+            limiter.wait()
+            try:
+                raw = call(indicator)
+                if not isinstance(raw, dict):
+                    raise ValueError("Response must be a JSON object")
+                with lock:
+                    cache[cache_key] = raw
+                    metrics["success"] += 1
+                return {"indicator": indicator, "provider": name, "data": raw, "cached": False}
+            except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, ValueError) as exc:
+                retryable = not isinstance(exc, urllib.error.HTTPError) or exc.code in (429, 500, 502, 503)
+                if not retryable or attempt + 1 == attempts:
+                    with lock:
+                        metrics["failure"] += 1
+                    return {"indicator": indicator, "provider": name, "error": type(exc).__name__}
+                time.sleep(min(4, 0.25 * 2 ** attempt + random.uniform(0, 0.1)))
+
+    start = time.monotonic()
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        results = list(pool.map(one, jobs))
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    cache_path.write_text(json.dumps(cache, sort_keys=True, indent=2) + "\n")
+    metrics["seconds"] = round(time.monotonic() - start, 3)
+    return results, metrics
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("input", type=Path)
+    parser.add_argument("--fixture", type=Path, help="provider -> indicator -> response map")
+    parser.add_argument("--base-url", default=os.getenv("TI_BASE_URL"))
+    parser.add_argument("--cache", type=Path, default=Path(".cache/concurrent.json"))
+    parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--rate", type=float, default=2.0)
+    parser.add_argument("--output", type=Path, default=Path("enrichment-results.json"))
+    args = parser.parse_args()
+    if not 1 <= args.workers <= 16 or args.rate <= 0:
+        parser.error("workers must be 1–16 and rate must be positive")
+    indicators = json.loads(args.input.read_text())
+    if not isinstance(indicators, list) or not all(isinstance(x, str) for x in indicators):
+        parser.error("input must be a list of strings")
+    if args.fixture:
+        fixture = json.loads(args.fixture.read_text())
+        providers = {name: (lambda value, rows=rows: rows.get(value, {}), RateLimiter(args.rate))
+                     for name, rows in fixture.items()}
+    else:
+        key = os.getenv("TI_API_KEY")
+        if not key or not args.base_url or not args.base_url.startswith("https://"):
+            parser.error("set TI_API_KEY and HTTPS TI_BASE_URL or use --fixture")
+        providers = {"primary": (lambda value: request_json(args.base_url, key, value, 5),
+                                  RateLimiter(args.rate))}
+    results, metrics = run(indicators, providers, args.cache, args.workers)
+    args.output.write_text(json.dumps({"metrics": metrics, "results": results}, indent=2) + "\n")
+    print(json.dumps(metrics))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Step 2: Create synthetic input
+
+Run these commands in the same directory as the program. Documentation IP addresses and invented domains are used so the walkthrough does not expose live case data.
+
+```bash
+cat > indicators.json <<'JSON'
+["192.0.2.10","example.test"]
+JSON
+cat > providers.json <<'JSON'
+{"lab-a":{"192.0.2.10":{"classification":"suspicious"},"example.test":{"classification":"unknown"}},"lab-b":{"192.0.2.10":{"classification":"unknown"},"example.test":{"classification":"benign"}}}
+JSON
+```
+
+## Step 3: Run and inspect
+
+```bash
+python concurrent_enrichment.py indicators.json --fixture providers.json --workers 2 --rate 10 --output enrichment-results.json
+```
+
+**Expected:** Four provider/indicator combinations. The first run records successes; a second run records cache hits.
+
+## Step 4: Verify independently
+
+Run the following check after the sample command. Inspect the generated artifact yourself as well; an assertion only checks the stated properties.
+
+```bash
+python - <<'PY'
+import json
+out=json.load(open("enrichment-results.json"))
+assert len(out["results"])==4
+assert out["metrics"]["success"]+out["metrics"]["cache_hit"]==4
+print("passed")
+PY
+```
+
+## Step 5: Test the failure path
+
+Lower the rate and compare elapsed time. Remove a fixture response to see an empty provider object. Do not increase workers to bypass live quotas.
+
+## Completion checklist
+
+- [ ] The example runs from a clean directory.
+- [ ] The verification command passes, or an intentionally critical health status has the expected exit code.
+- [ ] A failure or negative sample behaves as documented.
+- [ ] A README explains the problem, input contract, output schema, commands, limitations, and data-handling rules.
+- [ ] Another analyst can repeat the workflow without reading your mind.
+
+## Next iteration
+
+Honor Retry-After, add structured logs and cache TTL, and use a local mock HTTP server for integration tests.
+
+## References
+
+- [concurrent.futures](https://docs.python.org/3/library/concurrent.futures.html)
+- [threading](https://docs.python.org/3/library/threading.html)
+
+<Card title="Return to Advanced" icon="arrow-left" href="/training/python/advanced">Continue the project path.</Card>

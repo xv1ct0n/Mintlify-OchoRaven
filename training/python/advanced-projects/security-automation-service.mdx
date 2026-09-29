@@ -1,0 +1,221 @@
+---
+title: "Project 4: Security Automation Service"
+description: "Expose IOC classification through an authenticated FastAPI lab API with validation, health, request IDs, tests, and a container."
+---
+# Project 4: Security Automation Service
+
+**Intent:** Expose IOC classification through an authenticated FastAPI lab API with validation, health, request IDs, tests, and a container.
+
+**Result:** A working utility, synthetic fixture, expected output, and a verification check. The project is designed for authorized lab data and can be adapted after you inspect the real data/API contract.
+
+## Learning objectives
+
+1. API contract — Pydantic bounds the input and documents the normalized response. A valid IP or domain returns a typed result; malformed input receives 422.
+2. Authentication — Compare X-API-Key with a server-side environment secret using a constant-time function. Missing configuration returns 503. A shared key is only suitable for a restricted lab.
+3. Observability — Middleware creates a request ID and logs path and status as JSON without logging indicators or secrets. Health reports configured or unconfigured.
+4. Tests and deployment — TestClient checks authorization and validation in process. A non-root container is bound to loopback. Add TLS and stronger identity before any wider deployment.
+
+## Prerequisites and setup
+
+Use Python 3.11 or newer. Create an empty project folder. Run python -m venv .venv and activate it. Use python3 where your system requires it. Save the code below with the exact filename shown. Keep generated output, secrets, and local caches outside version control.
+
+Read through the lessons before copying the full listing. After each lesson, find the corresponding function and explain its input, output, and failure behavior.
+
+## Component lessons
+
+### Lesson 1: API contract
+
+Pydantic bounds the input and documents the normalized response. A valid IP or domain returns a typed result; malformed input receives 422.
+
+### Lesson 2: Authentication
+
+Compare X-API-Key with a server-side environment secret using a constant-time function. Missing configuration returns 503. A shared key is only suitable for a restricted lab.
+
+### Lesson 3: Observability
+
+Middleware creates a request ID and logs path and status as JSON without logging indicators or secrets. Health reports configured or unconfigured.
+
+### Lesson 4: Tests and deployment
+
+TestClient checks authorization and validation in process. A non-root container is bound to loopback. Add TLS and stronger identity before any wider deployment.
+
+## Step 1: Build the program
+
+Save this complete reference implementation as `security_service.py`. The standard-library projects need no third-party package. The advanced validator and API service declare their dependencies below.
+
+```python
+"""Small authenticated IOC classification API for a trusted lab network."""
+import ipaddress
+import json
+import logging
+import os
+import re
+import secrets
+import uuid
+from contextvars import ContextVar
+
+from fastapi import Depends, FastAPI, HTTPException, Request
+from pydantic import BaseModel, Field
+
+
+request_id = ContextVar("request_id", default="-")
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logger = logging.getLogger("security-service")
+app = FastAPI(title="IOC Classification Service", version="1.0.0")
+
+
+class IOCInput(BaseModel):
+    indicator: str = Field(min_length=1, max_length=253)
+
+
+class IOCResult(BaseModel):
+    indicator: str
+    type: str
+    is_private: bool | None = None
+
+
+def require_key(request: Request):
+    expected = os.getenv("SERVICE_API_KEY")
+    if not expected:
+        raise HTTPException(status_code=503, detail="Service not configured")
+    supplied = request.headers.get("X-API-Key", "")
+    if not secrets.compare_digest(supplied, expected):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    rid = str(uuid.uuid4())
+    token = request_id.set(rid)
+    try:
+        response = await call_next(request)
+        logger.info(json.dumps({"request_id": rid, "path": request.url.path,
+                                "status": response.status_code}))
+        response.headers["X-Request-ID"] = rid
+        return response
+    finally:
+        request_id.reset(token)
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok" if os.getenv("SERVICE_API_KEY") else "unconfigured"}
+
+
+@app.post("/classify", response_model=IOCResult, dependencies=[Depends(require_key)])
+def classify(payload: IOCInput):
+    value = payload.indicator.strip()
+    try:
+        address = ipaddress.ip_address(value)
+        return IOCResult(indicator=address.compressed, type="ip", is_private=address.is_private)
+    except ValueError:
+        labels = value.split(".")
+        valid = len(value) <= 253 and len(labels) > 1 and all(
+            re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", part)
+            for part in labels
+        )
+        if valid:
+            return IOCResult(indicator=value.lower(), type="domain")
+        raise HTTPException(status_code=422, detail="Expected an IP address or domain")
+```
+
+## Step 2: Create synthetic input
+
+Run these commands in the same directory as the program. Documentation IP addresses and invented domains are used so the walkthrough does not expose live case data.
+
+```bash
+cat > pyproject.toml <<'TOML'
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "security-automation-service"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1"]
+[project.optional-dependencies]
+test = ["pytest>=8,<10", "httpx>=0.27,<1"]
+[tool.setuptools]
+py-modules = ["security_service"]
+TOML
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[test]'
+```
+
+## Step 3: Run and inspect
+
+```bash
+SERVICE_API_KEY=lab-only-secret uvicorn security_service:app --host 127.0.0.1 --port 8000 # keep this terminal running; verify in a second terminal
+```
+
+**Expected:** GET /health returns ok. Unauthenticated POST returns 401; authenticated classification returns an IP result and X-Request-ID.
+
+## Step 4: Verify independently
+
+Run the following check after the sample command. Inspect the generated artifact yourself as well; an assertion only checks the stated properties.
+
+```bash
+python - <<'PY'
+from fastapi.testclient import TestClient
+from security_service import app
+import os
+os.environ["SERVICE_API_KEY"]="lab-only-secret"
+client=TestClient(app)
+assert client.post("/classify",json={"indicator":"192.0.2.10"}).status_code==401
+response=client.post("/classify",headers={"X-API-Key":"lab-only-secret"},json={"indicator":"192.0.2.10"})
+assert response.status_code==200 and response.json()["type"]=="ip"
+assert response.headers["X-Request-ID"]
+assert client.post("/classify",headers={"X-API-Key":"lab-only-secret"},json={"indicator":"bad value!"}).status_code==422
+print("passed")
+PY
+```
+
+## Step 5: Test the failure path
+
+Unset SERVICE_API_KEY for health=unconfigured and POST=503. Send the wrong key for 401. Submit bad input for 422. Never log the key.
+
+## Completion checklist
+
+- [ ] The example runs from a clean directory.
+- [ ] The verification command passes, or an intentionally critical health status has the expected exit code.
+- [ ] A failure or negative sample behaves as documented.
+- [ ] A README explains the problem, input contract, output schema, commands, limitations, and data-handling rules.
+- [ ] Another analyst can repeat the workflow without reading your mind.
+
+## Next iteration
+
+Replace the shared key with scoped identity, integrate authorized enrichment, and add CI/container health probes.
+
+## References
+
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [Pydantic](https://docs.pydantic.dev/)
+- [Dockerfile](https://docs.docker.com/reference/dockerfile/)
+
+<Card title="Return to Advanced" icon="arrow-left" href="/training/python/advanced">Continue the project path.</Card>
+
+## Containerize for a restricted lab
+
+After the in-process test passes, create the Dockerfile below. Build and bind it to loopback. This lab service does not include production identity, TLS termination, or authorization scopes.
+
+```dockerfile
+FROM python:3.12-slim
+WORKDIR /app
+COPY pyproject.toml security_service.py ./
+RUN pip install --no-cache-dir . && useradd -r -u 10001 appuser
+USER appuser
+EXPOSE 8000
+CMD ["uvicorn", "security_service:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+```bash
+docker build -t security-automation-service:lab .
+docker run --rm -e SERVICE_API_KEY=lab-only-secret -p 127.0.0.1:8000:8000 security-automation-service:lab
+```
+
+In another terminal, send a synthetic request:
+
+```bash
+curl -sS -H 'Content-Type: application/json' -H 'X-API-Key: lab-only-secret' -d '{"indicator":"192.0.2.10"}' http://127.0.0.1:8000/classify
+```

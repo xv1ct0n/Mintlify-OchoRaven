@@ -1,0 +1,168 @@
+---
+title: "Project 4: Analyst Case Packager"
+description: "Hash source evidence, build a timeline and indicator list, and write derived case artifacts without modifying originals."
+---
+# Project 4: Analyst Case Packager
+
+**Intent:** Hash source evidence, build a timeline and indicator list, and write derived case artifacts without modifying originals.
+
+**Result:** A working utility, synthetic fixture, expected output, and a verification check. The project is designed for authorized lab data and can be adapted after you inspect the real data/API contract.
+
+## Learning objectives
+
+1. Evidence boundary — Read originals from one directory and write derived files to a separate directory. Reject nested paths to avoid overwriting or reprocessing outputs.
+2. Streaming hashes — Read in chunks and record SHA-256, byte size, and relative path for each source file.
+3. Timeline provenance — Parse timestamped JSONL, sort events, and retain source file and line number. This teaching version skips invalid lines; production should report each rejected record.
+4. Derived output — Write a manifest, timeline, indicator list, and summary. Independently verify a source hash and keep outputs under the same access controls as evidence.
+
+## Prerequisites and setup
+
+Use Python 3.11 or newer. Create an empty project folder. Run python -m venv .venv and activate it. Use python3 where your system requires it. Save the code below with the exact filename shown. Keep generated output, secrets, and local caches outside version control.
+
+Read through the lessons before copying the full listing. After each lesson, find the corresponding function and explain its input, output, and failure behavior.
+
+## Component lessons
+
+### Lesson 1: Evidence boundary
+
+Read originals from one directory and write derived files to a separate directory. Reject nested paths to avoid overwriting or reprocessing outputs.
+
+### Lesson 2: Streaming hashes
+
+Read in chunks and record SHA-256, byte size, and relative path for each source file.
+
+### Lesson 3: Timeline provenance
+
+Parse timestamped JSONL, sort events, and retain source file and line number. This teaching version skips invalid lines; production should report each rejected record.
+
+### Lesson 4: Derived output
+
+Write a manifest, timeline, indicator list, and summary. Independently verify a source hash and keep outputs under the same access controls as evidence.
+
+## Step 1: Build the program
+
+Save this complete reference implementation as `case_packager.py`. The standard-library projects need no third-party package. The advanced validator and API service declare their dependencies below.
+
+```python
+"""Create a read-only evidence inventory and derived investigation package."""
+import argparse
+import hashlib
+import json
+from datetime import datetime
+from pathlib import Path
+
+
+def sha256(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def package(source, output):
+    source, output = source.resolve(), output.resolve()
+    if source == output or source in output.parents or output in source.parents:
+        raise ValueError("Input and output directories must be separate")
+    if not source.is_dir():
+        raise ValueError("Input directory does not exist")
+    output.mkdir(parents=True, exist_ok=True)
+    manifest, timeline, indicators = [], [], set()
+    for path in sorted(p for p in source.rglob("*") if p.is_file()):
+        relative = str(path.relative_to(source))
+        stat = path.stat()
+        manifest.append({"path": relative, "bytes": stat.st_size,
+                         "sha256": sha256(path)})
+        if path.suffix == ".jsonl":
+            for number, line in enumerate(path.read_text().splitlines(), 1):
+                try:
+                    event = json.loads(line)
+                    stamp = datetime.fromisoformat(event["timestamp"].replace("Z", "+00:00"))
+                except (ValueError, KeyError, TypeError, json.JSONDecodeError):
+                    continue
+                timeline.append({"timestamp": stamp.isoformat(), "source": relative,
+                                 "line": number, "event": event})
+                indicators.update(str(x) for x in event.get("indicators", []) if isinstance(x, str))
+    timeline.sort(key=lambda row: (row["timestamp"], row["source"], row["line"]))
+    (output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    (output / "timeline.json").write_text(json.dumps(timeline, indent=2) + "\n")
+    (output / "indicators.json").write_text(json.dumps(sorted(indicators), indent=2) + "\n")
+    (output / "summary.md").write_text(
+        f"# Investigation package\n\nSource files: {len(manifest)}  \n"
+        f"Valid timeline events: {len(timeline)}  \nUnique indicators: {len(indicators)}\n\n"
+        "Derived files are aids for analysis; originals remain in the source folder.\n")
+    return len(manifest), len(timeline)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("source", type=Path)
+    parser.add_argument("output", type=Path)
+    args = parser.parse_args()
+    files, events = package(args.source, args.output)
+    print(f"Packaged {files} source files and {events} timeline events")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Step 2: Create synthetic input
+
+Run these commands in the same directory as the program. Documentation IP addresses and invented domains are used so the walkthrough does not expose live case data.
+
+```bash
+mkdir -p evidence
+cat > evidence/events.jsonl <<'JSONL'
+{"timestamp":"2026-01-01T12:03:00Z","event_type":"login","indicators":["192.0.2.10"]}
+{"timestamp":"2026-01-01T12:00:00Z","event_type":"dns","indicators":["example.test"]}
+JSONL
+printf 'Synthetic lab case.
+' > evidence/notes.txt
+```
+
+## Step 3: Run and inspect
+
+```bash
+python case_packager.py evidence case-output
+```
+
+**Expected:** Two files and two events appear; the DNS event is first and source files remain unchanged.
+
+## Step 4: Verify independently
+
+Run the following check after the sample command. Inspect the generated artifact yourself as well; an assertion only checks the stated properties.
+
+```bash
+python - <<'PY'
+import json,hashlib,pathlib
+manifest=json.load(open("case-output/manifest.json"))
+timeline=json.load(open("case-output/timeline.json"))
+assert len(manifest)==2 and timeline[0]["event"]["event_type"]=="dns"
+assert next(x for x in manifest if x["path"]=="notes.txt")["sha256"]==hashlib.sha256(pathlib.Path("evidence/notes.txt").read_bytes()).hexdigest()
+print("passed")
+PY
+```
+
+## Step 5: Test the failure path
+
+Try an output folder inside evidence and confirm rejection. Add malformed JSONL; note the skipped record and plan an error report.
+
+## Completion checklist
+
+- [ ] The example runs from a clean directory.
+- [ ] The verification command passes, or an intentionally critical health status has the expected exit code.
+- [ ] A failure or negative sample behaves as documented.
+- [ ] A README explains the problem, input contract, output schema, commands, limitations, and data-handling rules.
+- [ ] Another analyst can repeat the workflow without reading your mind.
+
+## Next iteration
+
+Log rejected records, add acquisition metadata, and support more event schemas.
+
+## References
+
+- [hashlib](https://docs.python.org/3/library/hashlib.html)
+- [pathlib](https://docs.python.org/3/library/pathlib.html)
+
+<Card title="Return to Intermediate" icon="arrow-left" href="/training/python/intermediate">Continue the project path.</Card>

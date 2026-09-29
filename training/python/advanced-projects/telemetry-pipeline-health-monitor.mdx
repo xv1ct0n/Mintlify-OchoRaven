@@ -1,0 +1,180 @@
+---
+title: "Project 3: Telemetry Pipeline Health Monitor"
+description: "Measure freshness, volume, required-field completeness, and duplicate IDs with explicit health thresholds."
+---
+# Project 3: Telemetry Pipeline Health Monitor
+
+**Intent:** Measure freshness, volume, required-field completeness, and duplicate IDs with explicit health thresholds.
+
+**Result:** A working utility, synthetic fixture, expected output, and a verification check. The project is designed for authorized lab data and can be adapted after you inspect the real data/API contract.
+
+## Learning objectives
+
+1. Explicit baseline — Configuration lists expected sources, warning and critical age, a volume window, minimum count, and required fields. Thresholds are local assumptions.
+2. UTC time — Require timezone-aware timestamps and normalize to UTC. The --now option makes the lab reproducible; live runs use current UTC.
+3. Source checks — Group events by source, find newest valid event, count recent records, check required fields and duplicate IDs, and report absent sources.
+4. Severity and operations — Critical covers absent or stale telemetry and zero expected volume; warning covers delay, partial low volume, missing fields, or duplicates. Exit codes 0, 1, and 2 support scheduled monitoring.
+
+## Prerequisites and setup
+
+Use Python 3.11 or newer. Create an empty project folder. Run python -m venv .venv and activate it. Use python3 where your system requires it. Save the code below with the exact filename shown. Keep generated output, secrets, and local caches outside version control.
+
+Read through the lessons before copying the full listing. After each lesson, find the corresponding function and explain its input, output, and failure behavior.
+
+## Component lessons
+
+### Lesson 1: Explicit baseline
+
+Configuration lists expected sources, warning and critical age, a volume window, minimum count, and required fields. Thresholds are local assumptions.
+
+### Lesson 2: UTC time
+
+Require timezone-aware timestamps and normalize to UTC. The --now option makes the lab reproducible; live runs use current UTC.
+
+### Lesson 3: Source checks
+
+Group events by source, find newest valid event, count recent records, check required fields and duplicate IDs, and report absent sources.
+
+### Lesson 4: Severity and operations
+
+Critical covers absent or stale telemetry and zero expected volume; warning covers delay, partial low volume, missing fields, or duplicates. Exit codes 0, 1, and 2 support scheduled monitoring.
+
+## Step 1: Build the program
+
+Save this complete reference implementation as `telemetry_monitor.py`. The standard-library projects need no third-party package. The advanced validator and API service declare their dependencies below.
+
+```python
+"""Assess source freshness, volume, field completeness, and duplicate IDs."""
+import argparse
+import json
+from collections import Counter, defaultdict
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+def parse_time(value):
+    dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if dt.tzinfo is None:
+        raise ValueError("timestamp must include a timezone")
+    return dt.astimezone(timezone.utc)
+
+
+def assess(events, config, now):
+    groups = defaultdict(list)
+    for event in events:
+        groups[event.get("source")].append(event)
+    report = []
+    for name, spec in config["sources"].items():
+        rows, reasons = groups[name], []
+        valid = []
+        for event in rows:
+            try:
+                valid.append(parse_time(event["timestamp"]))
+            except (KeyError, TypeError, ValueError):
+                reasons.append("unparseable timestamp")
+        ages = [(now - stamp).total_seconds() / 60 for stamp in valid]
+        age = min(ages, default=None)
+        window = spec["window_minutes"]
+        volume = sum(0 <= x <= window for x in ages)
+        if age is None or age > spec["critical_after_minutes"]:
+            status = "critical"; reasons.append("stale or absent events")
+        elif age > spec["warning_after_minutes"]:
+            status = "warning"; reasons.append("delayed events")
+        else:
+            status = "healthy"
+        if volume < spec["minimum_volume"]:
+            status = "critical" if volume == 0 else max(status, "warning", key=["healthy", "warning", "critical"].index)
+            reasons.append("volume below baseline")
+        missing = sum(any(field not in event for field in spec["required_fields"]) for event in rows)
+        if missing:
+            if status == "healthy": status = "warning"
+            reasons.append(f"{missing} records missing required fields")
+        ids = [row.get("event_id") for row in rows if row.get("event_id")]
+        duplicates = sum(n - 1 for n in Counter(ids).values() if n > 1)
+        if duplicates:
+            if status == "healthy": status = "warning"
+            reasons.append(f"{duplicates} duplicate event IDs")
+        report.append({"source": name, "status": status, "last_age_minutes": age,
+                       "volume": volume, "missing_fields": missing,
+                       "duplicate_ids": duplicates, "reasons": sorted(set(reasons))})
+    return report
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("events", type=Path, help="JSONL events with source, timestamp, event_id")
+    parser.add_argument("config", type=Path, help="JSON baseline and thresholds")
+    parser.add_argument("--now", help="ISO timestamp for reproducible lab runs")
+    parser.add_argument("--output", type=Path, default=Path("health.json"))
+    args = parser.parse_args()
+    events = [json.loads(line) for line in args.events.read_text().splitlines() if line.strip()]
+    now = parse_time(args.now) if args.now else datetime.now(timezone.utc)
+    report = assess(events, json.loads(args.config.read_text()), now)
+    args.output.write_text(json.dumps(report, indent=2) + "\n")
+    for row in report:
+        print(f"{row['source']}: {row['status']} ({', '.join(row['reasons']) or 'ok'})")
+    raise SystemExit(2 if any(r["status"] == "critical" for r in report) else 1 if any(r["status"] == "warning" for r in report) else 0)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Step 2: Create synthetic input
+
+Run these commands in the same directory as the program. Documentation IP addresses and invented domains are used so the walkthrough does not expose live case data.
+
+```bash
+cat > events.jsonl <<'JSONL'
+{"source":"windows-security","timestamp":"2026-01-01T12:00:00Z","event_id":"1","event_type":"logon"}
+{"source":"windows-security","timestamp":"2026-01-01T12:01:00Z","event_id":"2","event_type":"logoff"}
+JSONL
+cat > config.json <<'JSON'
+{"sources":{"windows-security":{"warning_after_minutes":10,"critical_after_minutes":30,"window_minutes":60,"minimum_volume":2,"required_fields":["event_type"]},"dns":{"warning_after_minutes":10,"critical_after_minutes":30,"window_minutes":60,"minimum_volume":1,"required_fields":["query"]}}}
+JSON
+```
+
+## Step 3: Run and inspect
+
+```bash
+python telemetry_monitor.py events.jsonl config.json --now 2026-01-01T12:05:00Z --output health.json
+```
+
+**Expected:** Windows is healthy; DNS is critical because it is absent. Exit code 2 is intentional.
+
+## Step 4: Verify independently
+
+Run the following check after the sample command. Inspect the generated artifact yourself as well; an assertion only checks the stated properties.
+
+```bash
+python - <<'PY'
+import json
+rows={r["source"]:r for r in json.load(open("health.json"))}
+assert rows["windows-security"]["status"]=="healthy"
+assert rows["dns"]["status"]=="critical"
+print("passed")
+PY
+```
+
+## Step 5: Test the failure path
+
+Add a DNS event with query and rerun to reach healthy. Duplicate an ID or omit a required field to get a warning.
+
+## Completion checklist
+
+- [ ] The example runs from a clean directory.
+- [ ] The verification command passes, or an intentionally critical health status has the expected exit code.
+- [ ] A failure or negative sample behaves as documented.
+- [ ] A README explains the problem, input contract, output schema, commands, limitations, and data-handling rules.
+- [ ] Another analyst can repeat the workflow without reading your mind.
+
+## Next iteration
+
+Query a backend, build time-of-day volume baselines, and expose operational metrics.
+
+## References
+
+- [datetime](https://docs.python.org/3/library/datetime.html)
+- [collections](https://docs.python.org/3/library/collections.html)
+
+<Card title="Return to Advanced" icon="arrow-left" href="/training/python/advanced">Continue the project path.</Card>

@@ -1,0 +1,190 @@
+---
+title: "Project 1: IOC Enrichment Client"
+description: "Enrich normalized indicators through an authorized API, normalize context, cache results, and preserve provider errors."
+---
+# Project 1: IOC Enrichment Client
+
+**Intent:** Enrich normalized indicators through an authorized API, normalize context, cache results, and preserve provider errors.
+
+**Result:** A working utility, synthetic fixture, expected output, and a verification check. The project is designed for authorized lab data and can be adapted after you inspect the real data/API contract.
+
+## Learning objectives
+
+1. Provider contract — The input is a JSON list of strings. A provider function maps one indicator to one JSON object. Fixture and live modes share the contract, so offline development exercises the same normalization.
+2. Transport and credentials — The live adapter URL-encodes indicators, requires HTTPS, sets a timeout, and reads the key from the environment. Adapt the generic route and response mapping to your actual provider documentation.
+3. Normalize uncertainty — Retain the indicator, type, classification, tags, source, and retrieval time. An enrichment hit is context, not proof of maliciousness.
+4. Cache and failure behavior — Deduplicate while preserving order, reuse recent results, and report per-indicator errors without losing the rest of the analysis.
+
+## Prerequisites and setup
+
+Use Python 3.11 or newer. Create an empty project folder. Run python -m venv .venv and activate it. Use python3 where your system requires it. Save the code below with the exact filename shown. Keep generated output, secrets, and local caches outside version control.
+
+Read through the lessons before copying the full listing. After each lesson, find the corresponding function and explain its input, output, and failure behavior.
+
+## Component lessons
+
+### Lesson 1: Provider contract
+
+The input is a JSON list of strings. A provider function maps one indicator to one JSON object. Fixture and live modes share the contract, so offline development exercises the same normalization.
+
+### Lesson 2: Transport and credentials
+
+The live adapter URL-encodes indicators, requires HTTPS, sets a timeout, and reads the key from the environment. Adapt the generic route and response mapping to your actual provider documentation.
+
+### Lesson 3: Normalize uncertainty
+
+Retain the indicator, type, classification, tags, source, and retrieval time. An enrichment hit is context, not proof of maliciousness.
+
+### Lesson 4: Cache and failure behavior
+
+Deduplicate while preserving order, reuse recent results, and report per-indicator errors without losing the rest of the analysis.
+
+## Step 1: Build the program
+
+Save this complete reference implementation as `ioc_enrichment.py`. The standard-library projects need no third-party package. The advanced validator and API service declare their dependencies below.
+
+```python
+"""Enrich normalized IOCs with a documented lab API or local fixtures."""
+import argparse
+import json
+import os
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from pathlib import Path
+
+
+def fetch(indicator, base_url, api_key, timeout):
+    url = base_url.rstrip("/") + "/indicators/" + urllib.parse.quote(indicator, safe="")
+    request = urllib.request.Request(url, headers={"Authorization": f"Bearer {api_key}"})
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return json.load(response)
+    except urllib.error.HTTPError as exc:
+        if exc.code == 429:
+            raise RuntimeError("Provider rate limit; retry later") from exc
+        raise RuntimeError(f"Provider returned HTTP {exc.code}") from exc
+    except (urllib.error.URLError, TimeoutError) as exc:
+        raise RuntimeError("Provider unavailable or timed out") from exc
+
+
+def normalize(indicator, raw, source):
+    if not isinstance(raw, dict):
+        raise ValueError("Provider response must be a JSON object")
+    return {"indicator": indicator, "type": raw.get("type", "unknown"),
+            "classification": raw.get("classification", "unknown"),
+            "tags": sorted(set(raw.get("tags", []))), "source": source,
+            "retrieved_at": int(time.time())}
+
+
+def enrich(indicators, cache_path, ttl, provider):
+    try:
+        cache = json.loads(cache_path.read_text())
+    except (FileNotFoundError, json.JSONDecodeError):
+        cache = {}
+    results = []
+    for indicator in dict.fromkeys(indicators):
+        entry = cache.get(indicator)
+        if entry and time.time() - entry["retrieved_at"] < ttl:
+            results.append(entry)
+            continue
+        try:
+            entry = normalize(indicator, provider(indicator), "lab-provider")
+        except (RuntimeError, ValueError) as exc:
+            entry = {"indicator": indicator, "error": str(exc)}
+        else:
+            cache[indicator] = entry
+        results.append(entry)
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    cache_path.write_text(json.dumps(cache, indent=2) + "\n")
+    return results
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("input", type=Path, help="JSON list of normalized indicator strings")
+    parser.add_argument("--fixture", type=Path, help="JSON object mapping indicators to lab responses")
+    parser.add_argument("--base-url", default=os.getenv("TI_BASE_URL"))
+    parser.add_argument("--cache", type=Path, default=Path(".cache/enrichment.json"))
+    parser.add_argument("--ttl", type=int, default=86400)
+    parser.add_argument("--timeout", type=float, default=5.0)
+    parser.add_argument("--output", type=Path, default=Path("report.json"))
+    args = parser.parse_args()
+    indicators = json.loads(args.input.read_text())
+    if not isinstance(indicators, list) or not all(isinstance(x, str) for x in indicators):
+        parser.error("input must be a JSON list of strings")
+    if args.fixture:
+        fixture = json.loads(args.fixture.read_text())
+        provider = lambda value: fixture.get(value, {"classification": "unknown"})
+    else:
+        key = os.getenv("TI_API_KEY")
+        if not key or not args.base_url or not args.base_url.startswith("https://"):
+            parser.error("set TI_API_KEY and an HTTPS TI_BASE_URL, or use --fixture")
+        provider = lambda value: fetch(value, args.base_url, key, args.timeout)
+    results = enrich(indicators, args.cache, args.ttl, provider)
+    args.output.write_text(json.dumps(results, indent=2) + "\n")
+    print(f"Wrote {len(results)} indicators to {args.output}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Step 2: Create synthetic input
+
+Run these commands in the same directory as the program. Documentation IP addresses and invented domains are used so the walkthrough does not expose live case data.
+
+```bash
+cat > indicators.json <<'JSON'
+["192.0.2.10","example.test","192.0.2.10"]
+JSON
+cat > fixture.json <<'JSON'
+{"192.0.2.10":{"type":"ip","classification":"suspicious","tags":["lab","test"]},"example.test":{"type":"domain","classification":"unknown","tags":[]}}
+JSON
+```
+
+## Step 3: Run and inspect
+
+```bash
+python ioc_enrichment.py indicators.json --fixture fixture.json --output report.json
+```
+
+**Expected:** Two unique rows with stable fields and a local cache file. Repeat the command to reuse the cache.
+
+## Step 4: Verify independently
+
+Run the following check after the sample command. Inspect the generated artifact yourself as well; an assertion only checks the stated properties.
+
+```bash
+python - <<'PY'
+import json
+rows=json.load(open("report.json"))
+assert len(rows)==2 and rows[0]["classification"]=="suspicious"
+assert rows[1]["classification"]=="unknown"
+print("passed")
+PY
+```
+
+## Step 5: Test the failure path
+
+Add an unknown indicator. Set --ttl 0 to force a refresh. For live mode, investigate 401/403 credentials, 429 quotas, and TLS errors without disabling certificate verification.
+
+## Completion checklist
+
+- [ ] The example runs from a clean directory.
+- [ ] The verification command passes, or an intentionally critical health status has the expected exit code.
+- [ ] A failure or negative sample behaves as documented.
+- [ ] A README explains the problem, input contract, output schema, commands, limitations, and data-handling rules.
+- [ ] Another analyst can repeat the workflow without reading your mind.
+
+## Next iteration
+
+Add a second provider adapter, confidence and source references, and a process-safe cache.
+
+## References
+
+- [urllib.request](https://docs.python.org/3/library/urllib.request.html)
+- [JSON](https://docs.python.org/3/library/json.html)
+
+<Card title="Return to Intermediate" icon="arrow-left" href="/training/python/intermediate">Continue the project path.</Card>

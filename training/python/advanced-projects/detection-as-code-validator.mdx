@@ -1,0 +1,192 @@
+---
+title: "Project 2: Detection-as-Code Validator"
+description: "Validate YAML rule metadata, identifiers, ATT&CK syntax, and positive/negative fixtures before a merge."
+---
+# Project 2: Detection-as-Code Validator
+
+**Intent:** Validate YAML rule metadata, identifiers, ATT&CK syntax, and positive/negative fixtures before a merge.
+
+**Result:** A working utility, synthetic fixture, expected output, and a verification check. The project is designed for authorized lab data and can be adapted after you inspect the real data/API contract.
+
+## Learning objectives
+
+1. Repository conventions — The teaching YAML schema requires id, title, description, logsource, and a field-equals predicate. It is not a full Sigma parser.
+2. Metadata integrity — Check kebab-case IDs and duplicates across files. ATT&CK validation here checks syntax only; production should verify IDs against a pinned dataset.
+3. Safe parsing — Use yaml.safe_load. Invalid YAML is reported, not silently skipped. Pin a supported PyYAML release in the project.
+4. Behavioral test gate — Require positive and negative fixtures for every rule. Compare expected and actual matches; emit JSON and exit 1 if any rule fails.
+
+## Prerequisites and setup
+
+Use Python 3.11 or newer. Create an empty project folder. Run python -m venv .venv and activate it. Use python3 where your system requires it. Save the code below with the exact filename shown. Keep generated output, secrets, and local caches outside version control.
+
+Read through the lessons before copying the full listing. After each lesson, find the corresponding function and explain its input, output, and failure behavior.
+
+## Component lessons
+
+### Lesson 1: Repository conventions
+
+The teaching YAML schema requires id, title, description, logsource, and a field-equals predicate. It is not a full Sigma parser.
+
+### Lesson 2: Metadata integrity
+
+Check kebab-case IDs and duplicates across files. ATT&CK validation here checks syntax only; production should verify IDs against a pinned dataset.
+
+### Lesson 3: Safe parsing
+
+Use yaml.safe_load. Invalid YAML is reported, not silently skipped. Pin a supported PyYAML release in the project.
+
+### Lesson 4: Behavioral test gate
+
+Require positive and negative fixtures for every rule. Compare expected and actual matches; emit JSON and exit 1 if any rule fails.
+
+## Step 1: Build the program
+
+Save this complete reference implementation as `detection_validator.py`. The standard-library projects need no third-party package. The advanced validator and API service declare their dependencies below.
+
+```python
+"""Validate YAML detection rules and run local positive/negative fixtures."""
+import argparse
+import json
+import re
+from pathlib import Path
+
+import yaml
+
+
+REQUIRED = {"id", "title", "description", "logsource", "detection"}
+RULE_ID = re.compile(r"^[a-z][a-z0-9-]+$")
+ATTACK_ID = re.compile(r"^T\d{4}(?:\.\d{3})?$")
+
+
+def inspect_rule(rule, path, seen):
+    errors = []
+    if not isinstance(rule, dict):
+        return ["rule must be a YAML object"]
+    errors += [f"missing {key}" for key in sorted(REQUIRED - rule.keys())]
+    rid = rule.get("id")
+    if not isinstance(rid, str) or not RULE_ID.fullmatch(rid):
+        errors.append("id must be lowercase kebab-case")
+    elif rid in seen:
+        errors.append(f"duplicate id {rid} (also in {seen[rid]})")
+    else:
+        seen[rid] = str(path)
+    for technique in rule.get("attack", []):
+        if not isinstance(technique, str) or not ATTACK_ID.fullmatch(technique):
+            errors.append(f"invalid ATT&CK id {technique}")
+    detect = rule.get("detection", {})
+    if not isinstance(detect, dict) or not {"field", "equals"} <= detect.keys():
+        errors.append("detection needs field and equals")
+    if not isinstance(rule.get("logsource"), dict):
+        errors.append("logsource must be a mapping")
+    return errors
+
+
+def validate(directory):
+    seen, report = {}, []
+    for path in sorted(directory.glob("*.yml")):
+        try:
+            rule = yaml.safe_load(path.read_text())
+            errors = inspect_rule(rule, path, seen)
+            if isinstance(rule, dict) and not errors:
+                fixtures = directory / "tests" / rule["id"]
+                counts = {"positive": 0, "negative": 0}
+                for label, expected in (("positive", True), ("negative", False)):
+                    for sample in sorted((fixtures / label).glob("*.json")):
+                        event = json.loads(sample.read_text())
+                        actual = event.get(rule["detection"]["field"]) == rule["detection"]["equals"]
+                        counts[label] += 1
+                        if actual != expected:
+                            errors.append(f"fixture mismatch: {sample}")
+                if min(counts.values()) == 0:
+                    errors.append("at least one positive and one negative fixture required")
+        except (yaml.YAMLError, ValueError, OSError) as exc:
+            errors = [f"parse error: {exc}"]
+        report.append({"file": str(path), "passed": not errors, "errors": errors})
+    if not report:
+        report.append({"file": str(directory), "passed": False, "errors": ["no .yml rules found"]})
+    return report
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("rules", type=Path)
+    parser.add_argument("--output", type=Path, default=Path("validation.json"))
+    args = parser.parse_args()
+    report = validate(args.rules)
+    args.output.write_text(json.dumps(report, indent=2) + "\n")
+    for item in report:
+        print(f"{'PASS' if item['passed'] else 'FAIL'} {item['file']}: {', '.join(item['errors'])}")
+    raise SystemExit(0 if all(row["passed"] for row in report) else 1)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Step 2: Create synthetic input
+
+Run these commands in the same directory as the program. Documentation IP addresses and invented domains are used so the walkthrough does not expose live case data.
+
+```bash
+python -m pip install PyYAML
+mkdir -p rules/tests/auth-failure/positive rules/tests/auth-failure/negative
+cat > rules/auth-failure.yml <<'YAML'
+id: auth-failure
+title: Authentication failure
+description: Synthetic failed login
+logsource:
+  product: windows
+attack: [T1110]
+detection:
+  field: event_type
+  equals: authentication_failure
+YAML
+printf '%s
+' '{"event_type":"authentication_failure"}' > rules/tests/auth-failure/positive/fail.json
+printf '%s
+' '{"event_type":"authentication_success"}' > rules/tests/auth-failure/negative/success.json
+```
+
+## Step 3: Run and inspect
+
+```bash
+python detection_validator.py rules --output validation.json
+```
+
+**Expected:** PASS for auth-failure and exit 0. Changing the negative event to a failure should exit 1.
+
+## Step 4: Verify independently
+
+Run the following check after the sample command. Inspect the generated artifact yourself as well; an assertion only checks the stated properties.
+
+```bash
+python - <<'PY'
+import json
+rows=json.load(open("validation.json"))
+assert len(rows)==1 and rows[0]["passed"]
+print("passed")
+PY
+```
+
+## Step 5: Test the failure path
+
+Duplicate the rule ID, remove a required field, or invert a fixture. Confirm each issue is reported and blocks the run.
+
+## Completion checklist
+
+- [ ] The example runs from a clean directory.
+- [ ] The verification command passes, or an intentionally critical health status has the expected exit code.
+- [ ] A failure or negative sample behaves as documented.
+- [ ] A README explains the problem, input contract, output schema, commands, limitations, and data-handling rules.
+- [ ] Another analyst can repeat the workflow without reading your mind.
+
+## Next iteration
+
+Use an official Sigma parser, validate ATT&CK against a pinned dataset, and emit JUnit or SARIF.
+
+## References
+
+- [Sigma rules](https://sigmahq.io/docs/basics/rules.html)
+- [PyYAML](https://pyyaml.org/wiki/PyYAMLDocumentation)
+
+<Card title="Return to Advanced" icon="arrow-left" href="/training/python/advanced">Continue the project path.</Card>
