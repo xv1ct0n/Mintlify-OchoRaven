@@ -1,0 +1,148 @@
+---
+title: "Lab 6: Security Onion and Arkime Correlation"
+sidebarTitle: "Lab 6: SO + Arkime"
+description: "Pivot from alerts and indexed sessions into packet evidence and correlate Suricata telemetry."
+icon: "database"
+---
+
+# Lab 6 — Security Onion and Arkime correlation
+
+Packet analysis is most useful when connected to the rest of the defensive stack. In this lab, you will start from an alert or indexed session, narrow the evidence, retrieve PCAP, and validate the activity in Wireshark.
+
+## Objectives
+
+You will learn to:
+
+- pivot from Security Onion alerts or hunts into packet context;
+- use Arkime to narrow sessions by time, IP, port, and protocol;
+- correlate Suricata alert metadata with full packet evidence;
+- document where each observation came from;
+- avoid treating different query languages as interchangeable.
+
+## Investigation model
+
+```text
+Alert / Hunt Result
+        ↓
+Identify host + time + ports
+        ↓
+Arkime session search
+        ↓
+Relevant session(s)
+        ↓
+PCAP retrieval
+        ↓
+Wireshark validation
+        ↓
+Analyst conclusion + limitations
+```
+
+## Step 1 — Start with a bounded lead
+
+Use a lab Suricata alert, Security Onion alert, or known session and record:
+
+```text
+Alert time:
+Source IP:
+Destination IP:
+Source port:
+Destination port:
+Protocol:
+Signature / event type:
+```
+
+Do not begin with a broad environment-wide search unless the lab specifically requires it.
+
+## Step 2 — Search in Security Onion
+
+Use the available **Alerts**, **Hunt**, or **Dashboards** workflow for your deployed version to find surrounding telemetry.
+
+Questions to answer:
+
+- Did the source host communicate with the destination before or after the alert?
+- Are DNS, HTTP, TLS, or flow records available?
+- Are there related alerts on the same host or flow?
+
+<Info>
+Security Onion versions differ. Follow the documentation for your deployed release instead of assuming menu names or query features are identical across versions.
+</Info>
+
+Official reference: [Security Onion documentation](https://docs.securityonion.net/)
+
+## Step 3 — Pivot to Arkime
+
+Use Arkime to isolate the relevant packet session by time and endpoints.
+
+A practical sequence is:
+
+```text
+known timestamp
+    ↓
+source/destination IP
+    ↓
+port/protocol
+    ↓
+inspect session metadata
+    ↓
+retrieve PCAP
+```
+
+Arkime uses its own search expressions and indexed fields. Do not paste Wireshark display filters into Arkime.
+
+Official reference: [Arkime](https://arkime.com/)
+
+## Step 4 — Correlate Suricata
+
+Suricata EVE JSON can provide fields such as:
+
+- `src_ip` / `dest_ip`;
+- source/destination ports;
+- protocol;
+- alert signature information;
+- flow identifiers;
+- packet references when available for the processing mode and event type.
+
+Use the official [Suricata EVE JSON documentation](https://docs.suricata.io/en/latest/output/eve/eve-json-format.html) for your deployed version.
+
+## Step 5 — Validate in Wireshark
+
+Open the retrieved PCAP and reproduce the event using packet evidence.
+
+Example filter:
+
+```text
+ip.addr == 192.0.2.25 && ip.addr == 198.51.100.10
+```
+
+Then narrow by protocol, stream, or port.
+
+Record which claims come from which source:
+
+```text
+Suricata: signature matched on flow
+Arkime: session duration and bytes
+Wireshark: exact packet/stream behavior
+Security Onion: surrounding host timeline
+```
+
+## Query-language caution
+
+| Platform | Example language/context |
+| --- | --- |
+| Wireshark | Display filters |
+| Arkime | Arkime search expressions |
+| Elasticsearch/Kibana | KQL, ES|QL, Lucene, or other version-dependent interfaces |
+| OpenSearch | OpenSearch query capabilities / Dashboards interfaces |
+| Suricata | Rule syntax + EVE JSON fields |
+
+Translate the **investigative question**, not the literal query.
+
+## Validation
+
+Produce one correlated finding supported by at least two evidence sources and explain why packet evidence adds confidence or context.
+
+## Troubleshooting
+
+If PCAP is unavailable, document the telemetry you do have. Full-packet capture may be disabled, expired, filtered, or outside the capture window.
+
+<Card title="Next: Capstone Investigation" href="/training/network-forensics/capstone" icon="arrow-right">Apply the complete workflow with minimal guidance.</Card>
