@@ -1,0 +1,140 @@
+---
+title: "Python Beginner"
+description: "Build Python fundamentals through practical cybersecurity projects."
+icon: "seedling"
+---
+
+# Beginner — Python Foundations
+
+**Goal:** Become comfortable reading and writing small Python programs while learning to automate common analyst tasks.
+
+## Concepts to learn
+
+- Variables and Python data types
+- Strings and string methods
+- Lists, tuples, sets, and dictionaries
+- Boolean logic and comparisons
+- `if`, `elif`, and `else`
+- `for` and `while` loops
+- Functions, arguments, and return values
+- Reading and writing files
+- Paths with `pathlib`
+- Exceptions and basic error handling
+- Imports and the standard library
+- JSON and CSV fundamentals
+- Virtual environments and `pip`
+
+## Project 1 — IOC Normalizer
+
+**Intent:** Learn basic Python control flow and data structures while solving a common analyst problem: turning inconsistent indicator lists into normalized data.
+
+**Capability:** Accept a text file containing IPv4 addresses, domains, URLs, and hashes; remove duplicates; classify indicators; and export clean results.
+
+<Card title="Start Project 1: IOC Normalizer" icon="filter" href="/training/python/projects/ioc-normalizer">
+Follow the complete lesson-by-lesson walkthrough. You will learn each Python concept as you build the tool and finish with a functional command-line IOC normalizer.
+</Card>
+
+### Build requirements
+
+<Steps>
+  <Step title="Read the input">Accept an input filename from the command line and read one candidate indicator per line.</Step>
+  <Step title="Normalize values">Strip whitespace, ignore blank lines, and normalize values where doing so will not destroy evidence.</Step>
+  <Step title="Classify indicators">Use `ipaddress`, string operations, and simple validation logic to classify IPv4 addresses, domains, URLs, and common hash lengths.</Step>
+  <Step title="Deduplicate">Use sets or dictionary keys to eliminate duplicate indicators.</Step>
+  <Step title="Export results">Produce JSON or CSV output containing `value`, `type`, and `source` fields.</Step>
+</Steps>
+
+**Success criteria:** Invalid values do not crash the program; duplicates disappear; output is machine-readable; and the README explains normalization decisions.
+
+## Project 2 — Authentication Log Summarizer
+
+**Intent:** Learn file processing, dictionaries, aggregation, timestamp handling, grouping, and basic stateful detection logic using security telemetry.
+
+**Capability:** Analyze synthetic authentication telemetry, summarize successful and failed logins by user and source IP, and identify repeated failures followed by a successful authentication as an analyst review candidate.
+
+<Card title="Start Project 2: Authentication Log Summarizer" icon="user-shield" href="/training/python/projects/auth-log-summarizer">
+Build a functional authentication-analysis utility through a progressive walkthrough covering JSONL telemetry, validation, Counter, defaultdict, timelines, aggregation, stateful analysis, configurable thresholds, and structured reporting.
+</Card>
+
+### Core objectives
+
+1. Parse JSONL authentication events.
+2. Validate required telemetry fields and timestamps.
+3. Sort events chronologically.
+4. Count failures and successes by username.
+5. Count failures by source IP.
+6. Group related events by account.
+7. Identify configurable consecutive failures followed by a success.
+8. Preserve supporting context for analyst review.
+9. Print a concise analyst summary.
+10. Export findings and statistics to JSON.
+
+**Independent challenge:** Add a configurable time window so failures must occur within a defined period before the successful authentication.
+
+## Project 3 — File Hash Inventory
+
+**Intent:** Learn filesystem automation, binary file handling, cryptographic hashing, resilient batch processing, and artifact inventory techniques used in defensive operations.
+
+**Capability:** Recursively inventory an authorized directory, calculate SHA-256 hashes using streaming reads, collect file metadata, identify duplicate content, preserve per-file errors, and export CSV and JSON reports.
+
+<Card title="Start Project 3: File Hash Inventory" icon="fingerprint" href="/training/python/projects/file-hash-inventory">
+Build the final beginner project through a comprehensive walkthrough covering recursive filesystem traversal, binary I/O, chunked SHA-256 hashing, metadata, CSV/JSON reporting, duplicate identification, and integrity-baseline concepts.
+</Card>
+
+### Core objectives
+
+1. Validate a target directory supplied through the CLI.
+2. Recursively discover files with `pathlib`.
+3. Understand binary versus text file I/O.
+4. Calculate SHA-256 without loading entire files into memory.
+5. Record relative path and file-size metadata.
+6. Continue processing when individual files fail.
+7. Identify files with identical content using their hashes.
+8. Produce deterministic output.
+9. Export CSV and JSON artifacts.
+10. Explain what a hash can and cannot establish during analysis.
+
+**Independent challenge:** Compare the current inventory against a previous baseline and classify files as unchanged, modified, new, or removed.
+
+## Beginner checkpoint
+
+Before progressing, you should be able to create a script without a tutorial that:
+
+- reads files and structured data;
+- validates and transforms input;
+- recursively works with filesystem paths;
+- processes binary data safely;
+- uses functions to separate responsibilities;
+- handles recoverable errors without unnecessarily terminating a batch;
+- stores and aggregates information with lists, dictionaries, sets, and standard-library collections;
+- writes structured JSON and CSV output;
+- accepts command-line configuration; and
+- explains the assumptions and limitations of a simple defensive analytic.
+
+## Beginner project progression
+
+```text
+Project 1: IOC Normalizer
+Normalize defensive data
+          ↓
+Project 2: Authentication Log Summarizer
+Analyze event behavior
+          ↓
+Project 3: File Hash Inventory
+Inventory endpoint artifacts
+          ↓
+Ready for Intermediate Python
+```
+
+## Resources
+
+- [Python Tutorial](https://docs.python.org/3/tutorial/)
+- [Python `pathlib`](https://docs.python.org/3/library/pathlib.html)
+- [Python `ipaddress`](https://docs.python.org/3/library/ipaddress.html)
+- [Python `hashlib`](https://docs.python.org/3/library/hashlib.html)
+- [Python `json`](https://docs.python.org/3/library/json.html)
+- [Python `csv`](https://docs.python.org/3/library/csv.html)
+
+<Info>
+Keep each project in its own Git repository or folder with `README.md`, `requirements.txt` when dependencies are needed, sample sanitized data, and example output.
+</Info>

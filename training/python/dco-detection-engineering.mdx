@@ -1,0 +1,266 @@
+---
+title: "Python for DCO & Detection Engineering"
+description: "A progressive defensive-cyber project path for building Python capabilities used in threat hunting and detection engineering."
+icon: "shield-halved"
+---
+
+# Python for DCO & Detection Engineering
+
+This project path connects Python development directly to **Defensive Cyberspace Operations (DCO)**, threat hunting, incident analysis, and detection engineering.
+
+The objective is not to collect disconnected scripts. Each project should become a reusable component that feeds the next project.
+
+## Project progression
+
+| Stage | Project | Primary capability |
+| --- | --- | --- |
+| 1 | Log Parser | Convert raw telemetry into structured events |
+| 2 | IOC Extractor | Identify and normalize observables from data |
+| 3 | IOC Enrichment Engine | Add authorized threat-intelligence context |
+| 4 | Timeline Builder | Correlate events chronologically |
+| 5 | Hunt Analytics Runner | Execute repeatable hunt analytics |
+| 6 | Sigma Rule Validator | Quality-check detection content |
+| 7 | Detection Test Harness | Measure true/false matches on test fixtures |
+| 8 | ATT&CK Mapper | Associate detections with ATT&CK metadata |
+| 9 | Telemetry Health Monitor | Identify visibility and data-quality gaps |
+| 10 | Detection Pipeline | Integrate the components into a capstone workflow |
+
+---
+
+## 1. Security Log Parser
+
+**Intent:** Most defensive automation begins by turning telemetry into consistent data.
+
+**Build:** Parse a sanitized or lab-generated log source such as JSONL, CSV, Zeek logs, or exported Windows events.
+
+**Learn:** file I/O, parsing, timestamps, dictionaries, functions, exceptions.
+
+**Minimum output schema:**
+
+```json
+{
+  "timestamp": "2026-01-01T12:00:00Z",
+  "source": "example",
+  "host": "workstation-01",
+  "user": "analyst",
+  "src_ip": "192.0.2.10",
+  "event_type": "authentication"
+}
+```
+
+**Completion test:** malformed records are logged and skipped without stopping processing.
+
+---
+
+## 2. IOC Extractor & Normalizer
+
+**Intent:** Reduce manual extraction during triage and investigations.
+
+**Build:** Inspect selected event fields and extract IP addresses, domains, URLs, and hashes.
+
+**Learn:** regular expressions, `ipaddress`, sets, normalization, validation.
+
+**Deliverable:** JSON containing unique indicators, types, first/last observation, and source-event references.
+
+---
+
+## 3. IOC Enrichment Engine
+
+**Intent:** Turn observables into contextualized leads while preserving the distinction between an observable and confirmed malicious activity.
+
+**Build:** Enrich extracted indicators using authorized APIs or local threat-intelligence sources.
+
+**Learn:** HTTP, APIs, authentication, rate limiting, caching, error handling.
+
+<Warning>
+An enrichment hit is context, not proof of maliciousness. Preserve provider, timestamp, confidence/context, and raw references needed for analyst review.
+</Warning>
+
+---
+
+## 4. Investigation Timeline Builder
+
+**Intent:** Help analysts understand sequence and causality across heterogeneous events.
+
+**Build:** Merge normalized events from multiple sources into a chronological timeline.
+
+**Learn:** datetime handling, sorting, schemas, serialization.
+
+**Enhancements:** filtering by host/user/IP; Markdown/CSV output; event-source tags; related-event grouping.
+
+---
+
+## 5. Hunt Analytics Runner
+
+**Intent:** Make threat hunts repeatable rather than dependent on one-off manual queries.
+
+**Build:** Store hunt definitions in YAML and execute them against local datasets or an authorized search backend.
+
+Example definition:
+
+```yaml
+name: repeated-authentication-failures
+purpose: identify accounts or sources with repeated authentication failures
+parameters:
+  threshold: 5
+  window_minutes: 10
+```
+
+**Learn:** configuration-driven design, query abstraction, result handling, analyst-oriented output.
+
+**Completion test:** another analyst can add a new analytic without modifying the program's core execution logic.
+
+---
+
+## 6. Sigma Rule Validator
+
+**Intent:** Introduce detection-as-code quality controls.
+
+**Build:** Load Sigma rules and check required metadata, identifiers, ATT&CK references, status, log source, and repository conventions.
+
+**Learn:** YAML, schemas, validation, CLI design.
+
+**Resources:** [Sigma documentation](https://sigmahq.io/docs/) and [SigmaHQ](https://github.com/SigmaHQ/sigma).
+
+---
+
+## 7. Detection Test Harness
+
+**Intent:** Demonstrate whether detection logic behaves as expected before deployment.
+
+**Build:** Execute detection logic against curated positive and negative fixtures.
+
+Track:
+
+- true positives;
+- expected negatives;
+- unexpected matches;
+- missed expected matches;
+- execution errors.
+
+**Learning objective:** understand why automated testing is critical for tuning detections and preventing regressions.
+
+---
+
+## 8. ATT&CK Detection Mapper
+
+**Intent:** Make detection coverage easier to reason about and communicate.
+
+**Build:** Read detection metadata and produce mappings between detection IDs and MITRE ATT&CK techniques/sub-techniques.
+
+**Learn:** data modeling, APIs/structured datasets, joins, reporting.
+
+**Output ideas:** Markdown coverage report, CSV matrix, JSON for visualization tooling.
+
+<Resource note="Use ATT&CK mappings as documentation and analysis aids; a technique tag alone does not demonstrate complete detection coverage." />
+
+---
+
+## 9. Telemetry Health Monitor
+
+**Intent:** A detection cannot work when its required telemetry is missing, delayed, or malformed.
+
+**Build:** Check authorized telemetry sources for freshness, expected volume, required fields, and parsing quality.
+
+Example output:
+
+```text
+SOURCE              STATUS    LAST_EVENT        NOTES
+windows-security    healthy   2m ago            -
+dns                 warning   38m ago           delayed
+proxy                critical 4h ago            no recent events
+```
+
+**Learn:** baselines, configuration, APIs, metrics, operational monitoring.
+
+---
+
+## 10. Capstone — Detection Engineering Pipeline
+
+**Intent:** Combine Python skills into a practical defensive engineering capability.
+
+### Architecture
+
+```text
+Telemetry
+   |
+   v
+Parser / Normalizer
+   |
+   +--> IOC Extraction --> Enrichment
+   |
+   v
+Hunt / Detection Analytics
+   |
+   +--> Detection Tests
+   +--> ATT&CK Mapping
+   |
+   v
+Analyst Report / JSON Output
+```
+
+### Required capabilities
+
+<Steps>
+  <Step title="Ingest">
+    Accept at least two sanitized or lab-generated telemetry formats.
+  </Step>
+  <Step title="Normalize">
+    Convert records to a documented internal event schema.
+  </Step>
+  <Step title="Analyze">
+    Run configurable defensive analytics against the normalized events.
+  </Step>
+  <Step title="Enrich">
+    Add optional authorized enrichment without making enrichment a prerequisite for analysis.
+  </Step>
+  <Step title="Validate">
+    Run automated positive and negative detection tests.
+  </Step>
+  <Step title="Report">
+    Produce JSON plus a concise analyst-readable report containing findings, supporting events, and limitations.
+  </Step>
+</Steps>
+
+### Engineering requirements
+
+- `pyproject.toml` dependency management;
+- configuration outside source code;
+- no committed credentials;
+- type hints for public interfaces;
+- structured logging;
+- automated tests;
+- sanitized example data;
+- documented installation and usage;
+- deterministic output where practical;
+- Git-based version control.
+
+## Portfolio standard
+
+For every project, your README should answer:
+
+1. **Problem:** What analyst or engineering problem does this solve?
+2. **Intent:** Why does solving it matter operationally?
+3. **Inputs:** What data does it require?
+4. **Outputs:** What artifacts does it create?
+5. **Architecture:** How does the code work?
+6. **Usage:** How does another analyst run it?
+7. **Testing:** How do you know it works?
+8. **Limitations:** Where could results be incomplete or misleading?
+9. **Security:** How are credentials, sensitive data, and errors handled?
+10. **Next iteration:** What would you improve for production use?
+
+## Recommended references
+
+- [Python documentation](https://docs.python.org/3/)
+- [MITRE ATT&CK](https://attack.mitre.org/)
+- [Sigma documentation](https://sigmahq.io/docs/)
+- [SigmaHQ GitHub](https://github.com/SigmaHQ/sigma)
+- [Zeek documentation](https://docs.zeek.org/)
+- [Elastic Python client](https://www.elastic.co/docs/reference/elasticsearch/clients/python)
+- [OpenSearch Python client](https://docs.opensearch.org/latest/clients/python-low-level/)
+- [pytest](https://docs.pytest.org/)
+
+<Info>
+A strong capstone is not measured by lines of code. Prefer a smaller, well-tested, clearly documented tool that another analyst can operate and extend.
+</Info>

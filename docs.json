@@ -57,6 +57,24 @@
         ]
       },
       {
+        "tab": "Training",
+        "groups": [
+          {
+            "group": "Python",
+            "pages": [
+              "training/python/index",
+              "training/python/beginner",
+              "training/python/projects/ioc-normalizer",
+              "training/python/projects/auth-log-summarizer",
+              "training/python/projects/file-hash-inventory",
+              "training/python/intermediate",
+              "training/python/advanced",
+              "training/python/dco-detection-engineering"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "By Domain",
         "groups": [
           {

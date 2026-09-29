@@ -1,0 +1,81 @@
+---
+title: "Python Training Path"
+description: "A staged, project-driven Python learning path for cybersecurity, DCO, and detection engineering."
+icon: "python"
+---
+
+# Python Training Path
+
+Learn Python by building capabilities that resemble the work performed by security analysts, threat hunters, incident responders, and detection engineers.
+
+<Info>
+This path is designed around **learn → build → explain → improve**. Each stage introduces language concepts, then requires you to apply them in a practical project rather than only completing syntax exercises.
+</Info>
+
+## Learning path
+
+<CardGroup cols={3}>
+  <Card title="Beginner" icon="seedling" href="/training/python/beginner">
+    Learn Python fundamentals while building small security-focused utilities.
+  </Card>
+  <Card title="Intermediate" icon="code" href="/training/python/intermediate">
+    Work with APIs, structured data, logs, testing, and reusable modules.
+  </Card>
+  <Card title="Advanced" icon="rocket" href="/training/python/advanced">
+    Build production-minded asynchronous, packaged, tested security tooling.
+  </Card>
+</CardGroup>
+
+## DCO & Detection Engineering project path
+
+<Card title="DCO & Detection Engineering Projects" icon="shield-halved" href="/training/python/dco-detection-engineering">
+Follow a progressive project track from log parsing through IOC enrichment, detection validation, rule testing, telemetry analysis, and a capstone detection pipeline.
+</Card>
+
+## What you will be able to do
+
+By completing the full path, you should be able to:
+
+- Read, modify, and write Python with confidence.
+- Parse JSON, CSV, JSONL, and common security telemetry formats.
+- Automate repetitive analyst workflows.
+- Query REST APIs and safely handle authentication, errors, pagination, and rate limits.
+- Transform raw telemetry into useful analyst context.
+- Build and test detection-engineering utilities.
+- Validate detection logic against representative datasets.
+- Structure Python projects with modules, configuration, logging, tests, and documentation.
+- Build a portfolio of security-focused projects that demonstrate practical capability.
+
+## Recommended workflow
+
+<Steps>
+  <Step title="Learn the concept">
+    Use the linked documentation and training resources to understand the assigned Python concepts.
+  </Step>
+  <Step title="Build without copying">
+    Implement the project yourself. Reference documentation, but avoid copying a completed solution.
+  </Step>
+  <Step title="Test against realistic input">
+    Use sanitized, synthetic, or lab-generated security data. Confirm expected output and failure behavior.
+  </Step>
+  <Step title="Document your reasoning">
+    Write a README explaining the problem, design, usage, limitations, and security considerations.
+  </Step>
+  <Step title="Refactor">
+    Improve naming, functions, error handling, tests, logging, and maintainability after the first working version.
+  </Step>
+</Steps>
+
+## Core resources
+
+- [Official Python Tutorial](https://docs.python.org/3/tutorial/)
+- [Python Standard Library](https://docs.python.org/3/library/)
+- [Python Packaging User Guide](https://packaging.python.org/)
+- [pytest documentation](https://docs.pytest.org/)
+- [Requests documentation](https://requests.readthedocs.io/)
+- [MITRE ATT&CK](https://attack.mitre.org/)
+- [Sigma documentation](https://sigmahq.io/docs/)
+
+<Warning>
+Use these projects only with systems, telemetry, and infrastructure you are authorized to access. The DCO track is intentionally focused on defensive analysis, detection, validation, and automation.
+</Warning>
