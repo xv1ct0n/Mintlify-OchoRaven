@@ -1,7 +1,7 @@
 ---
 title: "Network Security: Training Resources and Career Path"
 sidebarTitle: "Network Security"
-description: "Learn network security with curated training resources, certification paths, and hands-on labs covering firewalls, IDS/IPS, VPNs, and network forensics."
+description: "Learn network security with curated resources and hands-on labs covering packet analysis, network forensics, detection telemetry, and defensive engineering."
 ---
 
 Network security forms the backbone of every cybersecurity discipline. Before you can defend an environment, you need to understand how traffic flows through it — how packets move between hosts, how protocols negotiate sessions, and critically, how attackers exploit each layer to move laterally, exfiltrate data, or disrupt operations. Mastering network security gives you a mental model that makes every other specialization — from web application pentesting to cloud security — click into place faster.
@@ -87,6 +87,24 @@ Following a structured certification path helps you build knowledge systematical
 <Tip>
   Wireshark is not just a learning tool — it's something you'll open almost every day as a network security professional. Make a habit of capturing and analyzing real traffic on your home network right now: watch a DNS query resolve, follow a TCP handshake, and inspect TLS certificate exchanges. That muscle memory will pay dividends the moment you're analyzing suspicious traffic in an investigation.
 </Tip>
+
+## Hands-on Network Forensics course
+
+<Card title="Network Forensics Learning Path" icon="network-wired" href="/training/network-forensics/index">
+  Progress through seven applied labs from Wireshark fundamentals to DNS/web analysis, beaconing, artifact handling, Security Onion and Arkime correlation, and a capstone investigation.
+</Card>
+
+### Lab progression
+
+| Lab | Capability |
+| --- | --- |
+| 1. Packet Analysis Foundations | Scope PCAPs, filter traffic, inspect endpoints and conversations, and reconstruct streams. |
+| 2. DNS Investigation | Reconstruct name resolution and correlate DNS with subsequent network activity. |
+| 3. HTTP, TLS, and Web Traffic | Analyze plaintext transactions and encrypted-session metadata. |
+| 4. Beaconing Analysis | Characterize periodic communication and test competing explanations. |
+| 5. File and Artifact Analysis | Export approved lab objects, hash them, preserve provenance, and bridge into IOC/YARA workflows. |
+| 6. Security Onion + Arkime | Pivot from alerts and sessions to packet evidence and correlate Suricata telemetry. |
+| 7. Capstone | Conduct and report an end-to-end investigation with minimal guidance. |
 
 ## Network analysis practice from Ocho Training
 

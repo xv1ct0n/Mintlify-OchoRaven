@@ -106,7 +106,8 @@
               "training/network-forensics/web-traffic",
               "training/network-forensics/beaconing-analysis",
               "training/network-forensics/artifact-analysis",
-              "training/network-forensics/security-onion-arkime"
+              "training/network-forensics/security-onion-arkime",
+              "training/network-forensics/capstone"
             ]
           },
           {
