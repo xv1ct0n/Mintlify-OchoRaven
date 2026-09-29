@@ -69,7 +69,8 @@
               "training/python/projects/file-hash-inventory",
               "training/python/intermediate",
               "training/python/advanced",
-              "training/python/dco-detection-engineering"
+              "training/python/dco-detection-engineering",
+              "training/python/resources"
             ]
           }
         ]
@@ -94,6 +95,15 @@
               "tools/essential-tools",
               "tools/cheat-sheets",
               "tools/communities-and-news"
+            ]
+          },
+          {
+            "group": "Systems & Security Operations",
+            "pages": [
+              "domains/operating-systems",
+              "domains/siem-and-tools",
+              "domains/ot-security",
+              "domains/ai-ml-security"
             ]
           }
         ]
