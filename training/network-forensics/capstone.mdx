@@ -1,0 +1,117 @@
+---
+title: "Lab 7: Network Forensics Capstone"
+sidebarTitle: "Lab 7: Capstone"
+description: "Conduct and report an end-to-end network investigation using packet and correlated defensive telemetry."
+icon: "flag-checkered"
+---
+
+# Lab 7 — Network forensics capstone
+
+This capstone removes most of the step-by-step guidance. Your goal is to investigate an authorized PCAP or Security Onion case using the workflow developed in Labs 1–6.
+
+## Scenario
+
+You receive a defensive lead involving a workstation that may have communicated with an unusual external destination. You have packet data and, where available, related Security Onion, Arkime, Suricata, or SIEM telemetry.
+
+Your job is to determine what the evidence supports, what remains unknown, and what additional data would improve confidence.
+
+## Required workflow
+
+<Steps>
+  <Step title="Define the investigative question">Write the question you are trying to answer before filtering packets.</Step>
+  <Step title="Scope the evidence">Record capture start/end time, packet count, key hosts, protocols, and known gaps.</Step>
+  <Step title="Triage endpoints and conversations">Use protocol hierarchy, endpoints, conversations, and focused filters.</Step>
+  <Step title="Reconstruct relevant activity">Analyze DNS, TCP sessions, HTTP/TLS, and repeated communication as applicable.</Step>
+  <Step title="Handle artifacts safely">Extract only approved lab objects, calculate hashes, and preserve provenance.</Step>
+  <Step title="Correlate other telemetry">Use Security Onion, Arkime, Suricata, Elasticsearch/OpenSearch, or other available evidence without conflating their query languages.</Step>
+  <Step title="Reproduce key findings">Use TShark to reproduce at least one important observation from the command line.</Step>
+  <Step title="Write the report">Separate observations, interpretations, alternative explanations, and limitations.</Step>
+</Steps>
+
+## Minimum evidence requirements
+
+Your report should include:
+
+- capture scope;
+- host(s) of interest;
+- at least one DNS observation when DNS is present;
+- at least one reconstructed TCP/application conversation;
+- analysis of any repeated communication pattern;
+- relevant artifact or IOC records;
+- at least one correlation with a second telemetry source when available;
+- exact filters or commands used to support key findings.
+
+## Analyst report template
+
+```text
+Investigation title:
+Analyst:
+Evidence source(s):
+Capture start/end:
+
+Question
+--------
+What are you trying to determine?
+
+Executive summary
+-----------------
+What happened according to the available evidence?
+
+Key observations
+----------------
+1.
+2.
+3.
+
+Timeline
+--------
+Timestamp | Source | Destination | Observation
+
+Artifacts / observables
+-----------------------
+Type | Value | Source | Context
+
+Assessment
+----------
+What interpretation is best supported?
+
+Alternative explanations
+------------------------
+What benign or competing explanations remain plausible?
+
+Limitations
+-----------
+What could the available evidence not establish?
+
+Recommended next steps
+----------------------
+What additional telemetry or validation would improve confidence?
+```
+
+## Evaluation rubric
+
+| Area | Strong result |
+| --- | --- |
+| Scope | Capture boundaries and evidence gaps are explicit. |
+| Packet analysis | Filters and stream analysis directly support claims. |
+| Correlation | Other telemetry is used to add context, not replace packet evidence. |
+| Reasoning | Observation and interpretation are clearly separated. |
+| Reproducibility | Another analyst can rerun key filters/commands. |
+| Reporting | Findings are concise, evidence-based, and appropriately qualified. |
+
+## Optional advanced extensions
+
+- Write a Suricata rule against a benign lab pattern observed in the PCAP.
+- Build an ES|QL, KQL, or OpenSearch query that searches indexed telemetry for the same behavior.
+- Use Python to calculate beacon intervals from TShark output.
+- Create a YARA rule for a harmless exported training artifact.
+- Map relevant behavior to MITRE ATT&CK while documenting why the mapping is contextual rather than proof of adversary intent.
+
+<Info>
+The goal is not to find something malicious at all costs. A high-quality investigation may conclude that the available evidence supports benign activity, is inconclusive, or requires additional telemetry.
+</Info>
+
+<CardGroup cols={2}>
+  <Card title="Course Overview" href="/training/network-forensics/index" icon="list">Review the complete learning path.</Card>
+  <Card title="Network Security Path" href="/domains/network-security" icon="shield">Continue the broader Network Security curriculum.</Card>
+</CardGroup>

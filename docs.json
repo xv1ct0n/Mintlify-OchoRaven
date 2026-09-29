@@ -97,6 +97,20 @@
             ]
           },
           {
+            "group": "Network Forensics",
+            "icon": "network-wired",
+            "pages": [
+              "training/network-forensics/index",
+              "training/network-forensics/wireshark",
+              "training/network-forensics/dns-investigation",
+              "training/network-forensics/web-traffic",
+              "training/network-forensics/beaconing-analysis",
+              "training/network-forensics/artifact-analysis",
+              "training/network-forensics/security-onion-arkime",
+              "training/network-forensics/capstone"
+            ]
+          },
+          {
             "group": "CISSP",
             "pages": [
               "training/cissp/index",

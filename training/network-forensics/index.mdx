@@ -1,0 +1,65 @@
+---
+title: "Network Forensics Learning Path"
+sidebarTitle: "Course Overview"
+description: "A seven-lab progression from packet-analysis fundamentals to Security Onion and Arkime correlation and a capstone investigation."
+icon: "network-wired"
+---
+
+# Network Forensics Learning Path
+
+This course teaches a repeatable network-forensics workflow using Wireshark, TShark, Security Onion, Arkime, Suricata, and SIEM telemetry. It is designed for beginner through intermediate defenders, with optional advanced work for experienced analysts.
+
+<Info>
+**Prerequisites:** Basic IPv4, TCP/UDP, DNS, HTTP, and TLS concepts. You should be comfortable reading source/destination IP addresses and ports.
+
+**Outcome:** By the end of the course, you will be able to scope a PCAP, reconstruct conversations, analyze DNS and web traffic, characterize beaconing, handle artifacts safely, pivot between packet and indexed telemetry, and produce an evidence-based investigation report.
+</Info>
+
+## Course progression
+
+| Lab | Focus | Operational outcome |
+| --- | --- | --- |
+| 1 | Packet analysis foundations | Scope captures, filter traffic, inspect endpoints, and follow streams. |
+| 2 | DNS investigation | Reconstruct name resolution and correlate it with subsequent connections. |
+| 3 | HTTP, TLS, and web traffic | Analyze plaintext HTTP and encrypted-session metadata. |
+| 4 | Beaconing analysis | Measure periodic communication and test competing explanations. |
+| 5 | File and artifact analysis | Export safe lab objects, hash them, preserve provenance, and prepare them for further analysis. |
+| 6 | Security Onion + Arkime | Pivot from alerts and sessions into packet evidence and correlate Suricata telemetry. |
+| 7 | Capstone | Conduct an end-to-end investigation with minimal guidance. |
+
+## Recommended workflow
+
+```text
+Question or alert
+      ↓
+Scope the capture
+      ↓
+Identify endpoints and protocols
+      ↓
+Reduce noise with filters
+      ↓
+Reconstruct conversations
+      ↓
+Extract and validate artifacts
+      ↓
+Correlate with IDS / SIEM / session data
+      ↓
+Document evidence, interpretation, and limitations
+```
+
+<Warning>
+Use only traffic you own, synthetic lab data, approved training PCAPs, or packet captures you are explicitly authorized to inspect. PCAPs can contain credentials, cookies, internal hostnames, and personal information.
+</Warning>
+
+## Tools used
+
+- [Wireshark](https://www.wireshark.org/docs/) for packet inspection and stream reconstruction.
+- [TShark](https://www.wireshark.org/docs/man-pages/tshark.html) for repeatable command-line analysis.
+- [Security Onion](https://docs.securityonion.net/) for integrated alerts, hunting, and PCAP workflows.
+- [Arkime](https://arkime.com/) for indexed packet-session search and PCAP retrieval.
+- [Suricata](https://docs.suricata.io/) for IDS alerts and protocol telemetry.
+
+<CardGroup cols={2}>
+  <Card title="Start Lab 1" href="/training/network-forensics/wireshark" icon="magnifying-glass">Learn the packet-analysis workflow and core Wireshark techniques.</Card>
+  <Card title="Network Security Path" href="/domains/network-security" icon="shield">Return to the broader network-security learning path.</Card>
+</CardGroup>

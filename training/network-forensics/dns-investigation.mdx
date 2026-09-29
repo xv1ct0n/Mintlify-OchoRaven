@@ -1,0 +1,149 @@
+---
+title: "Lab 2: DNS Investigation"
+sidebarTitle: "Lab 2: DNS"
+description: "Reconstruct DNS activity and correlate name resolution with subsequent network connections."
+icon: "globe"
+---
+
+# Lab 2 — DNS investigation
+
+DNS often provides the hostname context that raw IP traffic does not. In this lab, you will reconstruct DNS queries and responses, then connect them to later traffic.
+
+## Objectives
+
+You will learn to:
+
+- separate DNS queries from responses;
+- identify queried names, record types, response codes, and returned addresses;
+- correlate a DNS answer with later TCP or UDP activity;
+- recognize common benign explanations for unusual DNS patterns.
+
+## Step 1 — Isolate DNS
+
+```text
+dns
+```
+
+Queries only:
+
+```text
+dns.flags.response == 0
+```
+
+Responses only:
+
+```text
+dns.flags.response == 1
+```
+
+Focus on one host:
+
+```text
+ip.addr == 192.0.2.25 && dns
+```
+
+## Step 2 — Inspect the question
+
+Expand **Domain Name System** in Packet Details and record:
+
+```text
+Client:
+Resolver:
+Query name:
+Query type:
+Transaction ID:
+Timestamp:
+```
+
+Useful field filters include:
+
+```text
+dns.qry.name
+dns.qry.type
+dns.flags.rcode
+```
+
+Search for a known name:
+
+```text
+dns.qry.name == "example.com"
+```
+
+## Step 3 — Match the response
+
+Locate the corresponding response and identify:
+
+- returned IPv4 or IPv6 address;
+- CNAME chain when present;
+- response code;
+- TTL.
+
+<Warning>
+A DNS lookup does not prove that the client later connected to the returned address. Treat resolution and connection as separate observations.
+</Warning>
+
+## Step 4 — Correlate with subsequent traffic
+
+If a response returns `198.51.100.10`, filter:
+
+```text
+ip.addr == 198.51.100.10
+```
+
+Then determine whether the querying host initiated a connection shortly after the resolution.
+
+Document the sequence:
+
+```text
+10:00:01 DNS query for example.com
+10:00:01 DNS answer → 198.51.100.10
+10:00:02 TCP SYN from client to 198.51.100.10:443
+```
+
+This is stronger evidence than any single packet viewed in isolation.
+
+## Step 5 — Use TShark
+
+```bash
+tshark -r lab.pcapng \
+  -Y "dns.flags.response == 0" \
+  -T fields \
+  -e frame.time \
+  -e ip.src \
+  -e dns.qry.name \
+  -e dns.qry.type
+```
+
+For responses:
+
+```bash
+tshark -r lab.pcapng \
+  -Y "dns.flags.response == 1" \
+  -T fields \
+  -e frame.time \
+  -e dns.qry.name \
+  -e dns.a \
+  -e dns.aaaa
+```
+
+## What to investigate
+
+Look for:
+
+- unusually long or high-entropy names;
+- repeated queries at regular intervals;
+- many NXDOMAIN responses;
+- rare or unexpected record types;
+- sudden shifts to new domains or resolvers.
+
+These are investigation leads, not standalone malicious indicators.
+
+## Validation
+
+Produce a short timeline showing at least one DNS query, its answer, and whether a subsequent connection to the resolved address occurred.
+
+## Troubleshooting
+
+If `dns` shows nothing, the traffic may use DNS over HTTPS/TLS, a different capture point, cached resolution, or no DNS at all. Document the limitation rather than forcing a conclusion.
+
+<Card title="Next: HTTP, TLS, and Web Traffic" href="/training/network-forensics/web-traffic" icon="arrow-right">Analyze application-layer web evidence and encrypted-session metadata.</Card>

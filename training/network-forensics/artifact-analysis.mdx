@@ -1,0 +1,132 @@
+---
+title: "Lab 5: File and Artifact Analysis"
+sidebarTitle: "Lab 5: Artifacts"
+description: "Extract and handle network-derived artifacts safely, preserve provenance, and prepare them for defensive analysis."
+icon: "file-shield"
+---
+
+# Lab 5 — File and artifact analysis
+
+Network investigations often produce artifacts such as downloaded files, hashes, domains, URLs, user agents, and certificates. This lab teaches you to preserve those observations without turning them into unsupported conclusions.
+
+## Objectives
+
+You will learn to:
+
+- export benign HTTP objects from an authorized capture;
+- calculate cryptographic hashes;
+- preserve provenance and evidence context;
+- connect extracted observables to IOC normalization, YARA, and IDS workflows;
+- avoid executing unknown content.
+
+## Step 1 — Identify an object transfer
+
+Use an approved PCAP that contains a harmless HTTP transfer.
+
+Filter:
+
+```text
+http.request || http.response
+```
+
+Follow the TCP stream and confirm the request and response belong to the same transaction.
+
+Record:
+
+```text
+Source host:
+Destination host:
+Host header:
+URI:
+Timestamp:
+TCP stream:
+Response code:
+Content type:
+```
+
+## Step 2 — Export the object
+
+Use **File → Export Objects → HTTP** and save only the benign lab object you intend to inspect.
+
+<Warning>
+Never execute an unknown file extracted from an untrusted capture. Follow your organization's malware-handling procedures and use an isolated analysis environment when required.
+</Warning>
+
+## Step 3 — Hash the file
+
+Linux/macOS:
+
+```bash
+sha256sum exported-file.bin
+```
+
+PowerShell:
+
+```powershell
+Get-FileHash .\exported-file.bin -Algorithm SHA256
+```
+
+Record the digest with the network context that produced it.
+
+A useful evidence record is:
+
+```text
+Artifact filename:
+SHA-256:
+Source PCAP:
+Packet / stream:
+Source IP:
+Destination IP:
+Requested URI:
+Observed timestamp:
+Analyst notes:
+```
+
+## Step 4 — Normalize observables
+
+Separate observables from judgments. Useful observables include:
+
+- IPv4/IPv6 addresses;
+- domains;
+- URLs;
+- SHA-256 hashes;
+- user agents;
+- certificate subjects/issuers.
+
+If you completed the Python IOC Normalizer project, use the same normalization principles here: preserve original evidence, normalize only where appropriate, and keep source context.
+
+## Step 5 — Connect to YARA
+
+YARA is useful when you have a file artifact and want to test content-based rules. A hash match and a YARA match answer different questions:
+
+| Technique | Question |
+| --- | --- |
+| Hash | Is this exact byte sequence already known? |
+| YARA | Does the file contain patterns described by a rule? |
+
+Use only approved sample files and rules in your lab.
+
+## Step 6 — Connect to Suricata or Snort
+
+A network IDS rule observes traffic, not the extracted file in isolation. Your packet evidence can help answer whether a future rule should match on:
+
+- protocol;
+- direction;
+- hostname or URI;
+- header values;
+- byte patterns visible on the wire.
+
+Do not assume a YARA rule can be copied into Suricata/Snort syntax or vice versa.
+
+## Validation
+
+Produce one artifact record containing a SHA-256 digest and enough provenance to trace the artifact back to its source stream or transaction.
+
+## Extension ideas
+
+- compare the hash with an authorized local IOC list;
+- run a benign YARA rule against the artifact;
+- write a Suricata rule that identifies a harmless lab URI;
+- compare what is observable at the packet layer versus the file layer.
+
+<Card title="Next: Security Onion and Arkime" href="/training/network-forensics/security-onion-arkime" icon="arrow-right">Correlate alerts, sessions, and full packet evidence.</Card>
