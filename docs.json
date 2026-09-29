@@ -94,7 +94,8 @@
               },
               "training/python/dco-detection-engineering",
               "training/python/resources"
-            ]
+            ],
+            "icon": "python"
           },
           {
             "group": "Network Forensics",
@@ -134,7 +135,8 @@
             "pages": [
               "training/cissp/index",
               "training/cissp/weekly-plan"
-            ]
+            ],
+            "icon": "book-open"
           }
         ]
       },
@@ -149,7 +151,8 @@
               "domains/cloud-security",
               "domains/malware-analysis",
               "domains/penetration-testing",
-              "domains/blue-team-and-soc"
+              "domains/blue-team-and-soc",
+              "detection-engineering"
             ]
           },
           {
