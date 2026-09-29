@@ -115,7 +115,8 @@
             "icon": "crosshairs",
             "pages": [
               "training/detection-engineering/index",
-              "training/detection-engineering/foundations"
+              "training/detection-engineering/foundations",
+              "training/detection-engineering/esql"
             ]
           },
           {
