@@ -1,0 +1,230 @@
+---
+title: "Lesson 3: KQL Detection Engineering"
+sidebarTitle: "3. KQL"
+description: "Write precise Kibana Query Language filters, understand KQL limitations, and validate custom-query detections against indexed telemetry."
+icon: "filter"
+---
+
+# Lesson 3 — KQL detection engineering
+
+Kibana Query Language (KQL) is a **filtering language**. It is excellent for finding documents that match field/value conditions, but it does not perform aggregation, transformation, or sorting by itself.
+
+<Info>
+  In this course, **KQL means Kibana Query Language**. It does not mean Microsoft's Kusto Query Language, which is a different language used by services such as Microsoft Sentinel and Azure Data Explorer.
+</Info>
+
+That limitation is important for detection design: use KQL when the behavior can be represented as a document-level match. Use ES|QL, EQL, transforms, or another mechanism when the analytic requires aggregation or event sequencing.
+
+## Learning objectives
+
+You will learn to:
+
+- filter on exact values, ranges, and field existence;
+- combine conditions with `AND`, `OR`, and `NOT`;
+- recognize mapping-dependent behavior;
+- design a KQL-backed custom query rule;
+- know when KQL is the wrong abstraction.
+
+## Lab PCAP
+
+Use **`http-chunked-gzip.pcap`** from the [Wireshark SampleCaptures](https://wiki.wireshark.org/SampleCaptures) HTTP section. Wireshark documents it as a single HTTP request/response for `www.wireshark.org` with a gzipped, chunked response.
+
+Process it through your lab sensor or Suricata and ingest the resulting HTTP telemetry into Elasticsearch.
+
+Example replay:
+
+```bash
+mkdir -p out
+suricata -r http-chunked-gzip.pcap -l out
+```
+
+Inspect `out/eve.json` before writing KQL so you know the real field names.
+
+## KQL is field-oriented filtering
+
+Examples from the official KQL model:
+
+```text
+http.request.method: GET
+```
+
+```text
+http.response.status_code >= 400 and http.response.status_code < 500
+```
+
+```text
+host.name: *
+```
+
+```text
+NOT source.ip: 192.0.2.10
+```
+
+KQL can also combine multiple values:
+
+```text
+http.request.method: (GET OR POST)
+```
+
+## Step 1 — Confirm HTTP telemetry exists
+
+Start with field existence rather than assuming a value:
+
+```text
+http.request.method: *
+```
+
+If no results appear, inspect:
+
+- the active time range;
+- the index/data view;
+- the parser output;
+- whether your pipeline uses ECS HTTP fields or vendor-specific fields.
+
+## Step 2 — Filter the request
+
+An ECS-oriented example:
+
+```text
+http.request.method: GET
+```
+
+Then add a destination/host field only after confirming it exists. Depending on the ingest path, you might have a field such as `url.domain`, `http.request.referrer`, or a Suricata-specific HTTP hostname field.
+
+<Warning>
+Do not guess a field name because it exists in another deployment. KQL syntax can be correct while the detection is operationally broken because the mapping is wrong.
+</Warning>
+
+## Step 3 — Combine conditions
+
+Example logic:
+
+```text
+http.request.method: GET AND network.protocol: http
+```
+
+Or exclude an approved source:
+
+```text
+http.request.method: GET AND NOT source.ip: 192.0.2.50
+```
+
+Use parentheses when precedence could be ambiguous:
+
+```text
+(http.request.method: GET OR http.request.method: POST) AND network.protocol: http
+```
+
+## Step 4 — Understand text versus keyword behavior
+
+Exact matching depends on field mapping.
+
+A `keyword`-style field is generally intended for exact values. A `text` field can be analyzed before searching.
+
+If a KQL expression behaves unexpectedly:
+
+1. inspect the field mapping;
+2. inspect a raw document;
+3. determine whether a `.keyword` multi-field exists;
+4. avoid adding wildcards until you understand the data type.
+
+## Step 5 — Design a custom-query detection
+
+A simple rule hypothesis might be:
+
+```text
+Alert when an HTTP request uses an uncommon method in a network segment
+where only GET and POST are expected.
+```
+
+Example KQL:
+
+```text
+network.protocol: http AND NOT http.request.method: (GET OR POST)
+```
+
+### What this logic proves
+
+It proves that an indexed HTTP event has a method value outside the approved set.
+
+### What it does not prove
+
+It does not prove exploitation or maliciousness. Methods such as `HEAD`, `OPTIONS`, `PUT`, or `DELETE` can be legitimate depending on the application.
+
+## Step 6 — Add environmental scope
+
+Detection quality often comes from narrowing the environment rather than adding complex syntax.
+
+Conceptual example:
+
+```text
+network.protocol: http
+AND destination.port: 8080
+AND NOT http.request.method: (GET OR POST)
+```
+
+Then document why port `8080` and the method allowlist are valid for that application segment.
+
+## Step 7 — Know when to stop using KQL
+
+Suppose the requirement changes to:
+
+```text
+Alert when one source generates more than 50 unusual HTTP methods in five minutes.
+```
+
+KQL alone cannot calculate that count. The filter can define the source event set:
+
+```text
+network.protocol: http AND NOT http.request.method: (GET OR POST)
+```
+
+But the threshold/count belongs in the rule engine or a language such as ES|QL.
+
+This distinction prevents a common design mistake: forcing a filter language to solve an aggregation problem.
+
+## Lab exercise
+
+<Steps>
+  <Step title="Replay the PCAP">Process `http-chunked-gzip.pcap` through Suricata or your lab sensor.</Step>
+  <Step title="Inspect raw events">Identify the actual HTTP and network fields produced by your pipeline.</Step>
+  <Step title="Write a broad existence filter">Start with an HTTP field using `field: *`.</Step>
+  <Step title="Narrow to the request">Filter for the request method and relevant destination context.</Step>
+  <Step title="Create one negative test">Write a KQL expression that intentionally excludes the observed request and confirm zero results.</Step>
+  <Step title="Document the rule boundary">State whether the logic is document filtering, aggregation, or sequence detection.</Step>
+</Steps>
+
+## Troubleshooting
+
+| Symptom | Likely cause | Check |
+| --- | --- | --- |
+| Parser error | Invalid KQL syntax | Parentheses, escaping, operators |
+| Zero hits | Wrong field/data view/time | Inspect raw document and time range |
+| Unexpected substring matching | Field is analyzed text | Mapping and keyword subfields |
+| Slow wildcard query | Leading/broad wildcard | Narrow terms and field scope |
+| Need counts or grouped thresholds | KQL limitation | Move logic to ES|QL/rule aggregation |
+
+## KQL versus ES|QL
+
+| Requirement | KQL | ES|QL |
+| --- | --- | --- |
+| Match field/value | Strong fit | Strong fit |
+| Boolean filtering | Strong fit | Strong fit |
+| Aggregation | No | Yes |
+| Transformation | No | Yes |
+| Derived fields | No | Yes |
+| Quick analyst search | Excellent | Good, but more verbose |
+
+<Info>
+KQL is not OpenSearch Dashboards Query Language and is not a portable synonym for every SIEM search bar. OpenSearch commonly uses DQL, PPL, SQL, or Query DSL depending on the interface and version.
+</Info>
+
+## Official references
+
+- [KQL reference](https://www.elastic.co/docs/reference/query-languages/kql)
+- [Elastic query languages overview](https://www.elastic.co/docs/explore-analyze/query-filter/languages)
+
+<CardGroup cols={2}>
+  <Card title="Next: Suricata" href="/training/detection-engineering/suricata" icon="shield-halved">Move from indexed events to packet/application-layer signatures.</Card>
+  <Card title="Previous: ES|QL" href="/training/detection-engineering/esql" icon="arrow-left">Return to aggregation-capable Elastic logic.</Card>
+</CardGroup>

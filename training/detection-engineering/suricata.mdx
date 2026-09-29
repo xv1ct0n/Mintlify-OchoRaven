@@ -1,0 +1,244 @@
+---
+title: "Lesson 4: Suricata Signature Engineering"
+sidebarTitle: "4. Suricata"
+description: "Write protocol-aware Suricata signatures, choose buffers and flow direction, and validate rules against known PCAP traffic."
+icon: "shield-halved"
+---
+
+# Lesson 4 — Suricata signature engineering
+
+Suricata signatures inspect packet data, reassembled streams, and application-layer protocol fields. A strong rule is specific about **protocol, direction, state, buffer, content, and operational purpose**.
+
+Unlike ES|QL and KQL, Suricata evaluates network traffic rather than previously indexed documents. The question changes from "which stored events match?" to "what packet or application-layer evidence should cause this signature to match?"
+
+## Learning objectives
+
+You will learn to:
+
+- read Suricata rule headers and options;
+- use protocol-aware sticky buffers;
+- constrain direction and flow state;
+- use `content`, `nocase`, and `fast_pattern` intentionally;
+- validate a local rule against a known PCAP;
+- distinguish Suricata syntax from Snort syntax and version-specific features.
+
+## Lab PCAP
+
+Use **`http-chunked-gzip.pcap`** from the [Wireshark SampleCaptures](https://wiki.wireshark.org/SampleCaptures) HTTP section. The capture contains a plaintext HTTP request/response for `www.wireshark.org`, making it suitable for a benign protocol-aware signature lab.
+
+## Rule anatomy
+
+A Suricata rule has a header and an option section:
+
+```text
+alert http any any -> any any (msg:"..."; ...; sid:1000001; rev:1;)
+```
+
+Header fields describe:
+
+```text
+action protocol source_ip source_port direction destination_ip destination_port
+```
+
+The option section adds message text, flow constraints, buffers, content tests, metadata, IDs, and other matching logic.
+
+## Start with a deliberate lab rule
+
+Create `lab.rules`:
+
+```suricata
+alert http any any -> any any (
+  msg:"LAB HTTP request to wireshark.org";
+  flow:established,to_server;
+  http.host;
+  content:"www.wireshark.org";
+  nocase;
+  sid:1000001;
+  rev:1;
+)
+```
+
+### What each element does
+
+| Element | Purpose |
+| --- | --- |
+| `alert` | Generate an alert when the signature matches. |
+| `http` | Restrict evaluation to HTTP application-layer traffic. |
+| `->` | Match the defined traffic direction. |
+| `flow:established,to_server` | Require an established connection and client-to-server direction. |
+| `http.host` | Select the parsed HTTP Host buffer. |
+| `content` | Match the specified bytes/text in that buffer. |
+| `nocase` | Ignore case for the content match. |
+| `sid` | Locally unique signature ID. |
+| `rev` | Rule revision number. |
+
+<Info>
+Use a locally managed SID range according to your organization's rule-management convention. The example uses `1000001` only for the lab.
+</Info>
+
+## Why the sticky buffer matters
+
+This is broader:
+
+```suricata
+content:"www.wireshark.org";
+```
+
+This is more explicit:
+
+```suricata
+http.host;
+content:"www.wireshark.org";
+```
+
+The second version says **where** the evidence must appear. That makes intent clearer and reduces accidental matches elsewhere in the stream.
+
+## Step 1 — Test the rule offline
+
+```bash
+mkdir -p out
+suricata -r http-chunked-gzip.pcap \
+  -S lab.rules \
+  -l out
+```
+
+`-r` reads a PCAP. `-S` loads the specified rule file as the rule source for this test. `-l` selects the output directory.
+
+## Step 2 — Inspect the alert
+
+If EVE JSON output is enabled:
+
+```bash
+jq 'select(.event_type == "alert")' out/eve.json
+```
+
+You should find an alert containing your lab signature name and SID.
+
+If there is no alert, troubleshoot in this order:
+
+1. confirm the PCAP contains the expected host value in Wireshark;
+2. run `suricata -T` with your configuration/rules to catch syntax problems;
+3. verify the HTTP parser is active;
+4. confirm the traffic direction and flow state;
+5. inspect `eve.json` for HTTP events even if the alert is absent.
+
+## Step 3 — Validate the evidence in Wireshark
+
+Open the same PCAP and filter:
+
+```text
+http.request
+```
+
+Then inspect the Host header. Detection validation should connect the signature to observable packet evidence, not only to the fact that an alert appeared.
+
+## Step 4 — Add additional context cautiously
+
+You might extend a rule with a URI condition:
+
+```suricata
+alert http any any -> any any (
+  msg:"LAB HTTP host and URI condition";
+  flow:established,to_server;
+  http.host;
+  content:"www.wireshark.org";
+  nocase;
+  http.uri;
+  content:"/";
+  sid:1000002;
+  rev:1;
+)
+```
+
+The more conditions you add, the narrower the signature becomes. That can reduce false positives but can also create false negatives if the behavior changes.
+
+## Step 5 — Think about performance
+
+`fast_pattern` can influence which content is selected for fast-pattern matching. Do not apply it mechanically. Choose stable, selective content and confirm behavior with your Suricata version and performance guidance.
+
+A detection that is logically correct but excessively expensive can still be operationally poor.
+
+## Step 6 — Translate a hypothesis into packet-visible evidence
+
+Hypothesis:
+
+```text
+A client reaches an unauthorized HTTP administrative path on a protected service.
+```
+
+Potential network-observable requirements:
+
+```text
+HTTP is visible in plaintext or otherwise parsed.
+Destination scope identifies the protected service.
+Request URI is observable.
+Direction is client to server.
+```
+
+Potential signature shape:
+
+```suricata
+alert http $HOME_NET any -> $HTTP_SERVERS any (
+  msg:"POLICY unauthorized admin URI request";
+  flow:established,to_server;
+  http.uri;
+  content:"/admin";
+  startswith;
+  sid:1000100;
+  rev:1;
+)
+```
+
+Treat that as a template, not a universal production rule. The actual network variables, URI semantics, and allowed clients must come from the environment.
+
+## Encryption boundary
+
+A content rule cannot match plaintext HTTP URI/Host data if the traffic is opaque TLS and the sensor has no equivalent metadata/parser visibility. In encrypted environments, detection may shift to:
+
+- TLS SNI or certificate metadata;
+- JA3/JA4-style fingerprints where available;
+- flow behavior;
+- endpoint telemetry;
+- proxy logs;
+- decrypted inspection points.
+
+## Suricata versus Snort
+
+Suricata and Snort share conceptual ancestry and some rule syntax, but they are not guaranteed to support every keyword, buffer, parser, or behavior identically.
+
+<Warning>
+Do not label a rule "Suricata/Snort compatible" until you test it in both engines and versions you actually deploy.
+</Warning>
+
+## Regression testing with `suricata-verify`
+
+The maintained [OISF `suricata-verify`](https://github.com/OISF/suricata-verify) repository is designed for automated Suricata verification tests. Its test format pairs PCAP input with rules/configuration and expected output checks.
+
+That is the model to emulate for production-quality signature development:
+
+```text
+rule + pcap + expected alert count + expected fields
+```
+
+## Validation checklist
+
+- [ ] Rule parses successfully.
+- [ ] Positive PCAP generates the expected alert.
+- [ ] Analyst can point to the triggering packet/stream evidence.
+- [ ] A negative PCAP or modified rule produces no alert.
+- [ ] Direction/state constraints are intentional.
+- [ ] Sticky buffer matches the intended protocol field.
+- [ ] SID/revision/metadata follow local standards.
+- [ ] Encryption and parser assumptions are documented.
+- [ ] Performance impact is considered.
+
+## Official references
+
+- [Suricata rule introduction](https://docs.suricata.io/en/latest/rules/intro.html)
+- [Suricata documentation](https://docs.suricata.io/)
+- [OISF suricata-verify](https://github.com/OISF/suricata-verify)
+
+<CardGroup cols={2}>
+  <Card title="Next: YARA" href="/training/detection-engineering/yara" icon="file-code">Move from network signatures to file/content signatures.</Card>
+  <Card title="Previous: KQL" href="/training/detection-engineering/kql" icon="arrow-left">Return to indexed document filtering.</Card>
+</CardGroup>

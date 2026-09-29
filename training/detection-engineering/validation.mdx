@@ -1,0 +1,280 @@
+---
+title: "Lesson 6: Detection Validation and Tuning"
+sidebarTitle: "6. Validation & Tuning"
+description: "Build positive and negative fixtures, regression tests, tuning notes, and cross-tool validation workflows for production detections."
+icon: "flask"
+---
+
+# Lesson 6 — Detection validation and tuning
+
+A detection is not finished when it matches once. Production detection engineering requires evidence that the logic matches what you intended, avoids known benign cases, survives pipeline changes, and gives analysts enough context to act.
+
+## Learning objectives
+
+You will learn to:
+
+- separate syntax validation from behavioral validation;
+- create positive and negative fixtures;
+- build regression checks around PCAP and event output;
+- tune without hiding meaningful behavior;
+- monitor data quality dependencies;
+- connect detections to investigation workflows in Security Onion, Arkime, Kibana, and OpenCTI.
+
+## Lab PCAP
+
+Use **`http-chunked-gzip.pcap`** from [Wireshark SampleCaptures](https://wiki.wireshark.org/SampleCaptures).
+
+The capture provides a small, deterministic HTTP transaction that is useful for repeated testing because you can inspect the same request in Wireshark, process it through Suricata, and index the resulting event data.
+
+## Four layers of validation
+
+| Layer | Question |
+| --- | --- |
+| Syntax | Does the engine accept the rule/query? |
+| Data | Are the required fields/bytes actually available? |
+| Logic | Does the detection match the intended positive fixture and reject negatives? |
+| Operations | Is the resulting alert useful, stable, and affordable to run? |
+
+A rule can pass the first three and still fail operationally because it is noisy, expensive, or returns poor context.
+
+## Build a test matrix
+
+Example:
+
+| Test | Expected |
+| --- | --- |
+| Known HTTP PCAP with matching host | Suricata alert present |
+| Same PCAP after changing host condition | No Suricata alert |
+| Indexed HTTP event with matching method/host | KQL hit present |
+| Same data outside time range | No KQL hit |
+| Indexed DNS events below threshold | No ES|QL finding |
+| Indexed DNS events above threshold | ES|QL finding |
+| Known artifact matching YARA structure | YARA match |
+| Plain-text negative fixture | No YARA match |
+
+## Step 1 — Freeze the fixture
+
+Hash the PCAP:
+
+```bash
+sha256sum http-chunked-gzip.pcap
+```
+
+Record:
+
+```text
+Fixture name:
+SHA-256:
+Source:
+Expected protocols:
+Expected key evidence:
+```
+
+A test result is much more meaningful when everyone is using the same bytes.
+
+## Step 2 — Validate Suricata syntax separately
+
+Before replaying traffic, validate configuration/rules:
+
+```bash
+suricata -T -c /etc/suricata/suricata.yaml -S lab.rules
+```
+
+Then replay:
+
+```bash
+rm -rf out && mkdir out
+suricata -r http-chunked-gzip.pcap -S lab.rules -l out
+```
+
+Count alerts:
+
+```bash
+jq -c 'select(.event_type == "alert")' out/eve.json | wc -l
+```
+
+Your regression expectation should be explicit, for example:
+
+```text
+Expected alert count: 1
+```
+
+## Step 3 — Validate indexed event semantics
+
+After ingesting EVE data into Elasticsearch, test the narrow filter first.
+
+KQL example:
+
+```text
+network.protocol: http
+```
+
+ES|QL example:
+
+```esql
+FROM logs-*
+| WHERE network.protocol == "http"
+| STATS events = COUNT(*) BY source.ip
+```
+
+If results differ from expectation, determine whether the problem is:
+
+```text
+PCAP → parser → event serialization → ingest → mapping → query
+```
+
+Do not tune the query to compensate for a broken ingest pipeline.
+
+## Step 4 — Add negative fixtures
+
+Negative testing should include more than "empty file."
+
+Useful categories:
+
+- same protocol, different hostname;
+- same hostname, different method/URI;
+- same source, approved destination;
+- unrelated file containing one YARA string but not the full condition;
+- same event volume distributed across multiple hosts;
+- sensor event with a missing optional field.
+
+The best negative fixtures look similar to the positive case while differing in the behavior that should matter.
+
+## Step 5 — Tune with a documented reason
+
+Avoid unexplained exceptions such as:
+
+```text
+NOT source.ip: 10.0.0.5
+```
+
+Prefer documentation:
+
+```text
+Exception: source.ip 10.0.0.5
+Reason: approved synthetic monitoring service
+Owner: Network Operations
+Evidence: change ticket / system inventory
+Review: quarterly
+```
+
+Exceptions are detection logic and should receive the same review discipline as the original rule.
+
+## Step 6 — Measure alert usefulness
+
+For each finding, ask whether the analyst receives:
+
+- entity/host identity;
+- timestamp/window;
+- matched values;
+- destination or file context;
+- rule name/version;
+- evidence source;
+- pivot fields for Arkime/Security Onion;
+- enrichment identifiers when sent to OpenCTI.
+
+A high-fidelity match with no investigation context can still waste analyst time.
+
+## Security Onion and Arkime validation loop
+
+A useful network workflow is:
+
+```text
+Suricata alert
+      ↓
+Security Onion Alerts / Hunt
+      ↓
+Arkime session
+      ↓
+PCAP / packet evidence
+      ↓
+confirm or reject detection interpretation
+```
+
+If an alert says "HTTP administrative path," the analyst should be able to pivot to the corresponding session and validate the actual request when packet visibility allows it.
+
+## OpenCTI enrichment boundary
+
+OpenCTI can add context such as indicator relationships, observables, campaigns, or reports. Treat that as **enrichment**, not as proof that the detection logic itself is correct.
+
+Good flow:
+
+```text
+detection match → extract observable → enrich in OpenCTI → analyst context
+```
+
+Risky flow:
+
+```text
+OpenCTI says indicator is bad → assume every matching event is malicious
+```
+
+Context changes confidence; it should not erase the need to validate local evidence.
+
+## OpenSearch note
+
+If the same telemetry is stored in OpenSearch, reimplement the analytic using the query mechanisms available in that deployment, such as Query DSL, DQL, PPL, or SQL. Do not paste ES|QL/KQL and assume equivalent semantics.
+
+## Detection-as-code practices
+
+Store at minimum:
+
+```text
+rule/query source
+metadata
+positive fixtures
+negative fixtures
+expected results
+version/revision
+owner
+changelog
+references
+```
+
+This course already includes Python projects that complement this workflow:
+
+- [Detection Test Harness](/training/python/intermediate-projects/detection-test-harness)
+- [Detection-as-Code Validator](/training/python/advanced-projects/detection-as-code-validator)
+
+Use them as implementation exercises rather than rebuilding the same concepts here.
+
+## Regression checklist
+
+- [ ] Parser/rule syntax check passes.
+- [ ] Positive fixture matches expected count.
+- [ ] Negative fixtures do not match.
+- [ ] Required fields still exist in current mappings.
+- [ ] Query executes within acceptable time/resource limits.
+- [ ] Alert contains enough evidence for triage.
+- [ ] Exceptions have owner, reason, and review date.
+- [ ] Version/revision changed when logic changed.
+- [ ] Analyst pivot to packet/session evidence works.
+
+## Troubleshooting principle
+
+When a detection suddenly stops firing, debug the data path from left to right:
+
+```text
+source telemetry
+   ↓
+collection
+   ↓
+parsing
+   ↓
+serialization
+   ↓
+ingest
+   ↓
+mapping
+   ↓
+query/rule
+   ↓
+alert engine
+```
+
+Changing detection logic before proving the upstream data is healthy can hide the real failure.
+
+<CardGroup cols={2}>
+  <Card title="Next: Capstone" href="/training/detection-engineering/capstone" icon="flag-checkered">Build one detection package across multiple engines.</Card>
+  <Card title="Python Test Harness" href="/training/python/intermediate-projects/detection-test-harness" icon="code">Automate repeatable positive/negative detection tests.</Card>
+</CardGroup>

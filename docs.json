@@ -111,6 +111,20 @@
             ]
           },
           {
+            "group": "Detection Engineering",
+            "icon": "crosshairs",
+            "pages": [
+              "training/detection-engineering/index",
+              "training/detection-engineering/foundations",
+              "training/detection-engineering/esql",
+              "training/detection-engineering/kql",
+              "training/detection-engineering/suricata",
+              "training/detection-engineering/yara",
+              "training/detection-engineering/validation",
+              "training/detection-engineering/capstone"
+            ]
+          },
+          {
             "group": "CISSP",
             "pages": [
               "training/cissp/index",

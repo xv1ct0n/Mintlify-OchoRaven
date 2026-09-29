@@ -1,0 +1,199 @@
+---
+title: "Lesson 1: Detection Engineering Foundations"
+sidebarTitle: "1. Foundations"
+description: "Build detection hypotheses, telemetry contracts, test cases, and tuning plans before writing engine-specific logic."
+icon: "diagram-project"
+---
+
+# Lesson 1 — Detection engineering foundations
+
+A detection should begin with a **behavioral hypothesis**, not a query. The query is only an implementation of the behavior you decided matters.
+
+## Learning objectives
+
+By the end of this lesson you should be able to:
+
+- write a detection hypothesis in observable terms;
+- define required telemetry and fields;
+- separate **signal**, **context**, and **enrichment**;
+- define positive and negative test cases;
+- identify likely false positives before deployment;
+- document assumptions that could invalidate a rule.
+
+## Core terms
+
+| Term | Meaning |
+| --- | --- |
+| Detection hypothesis | A testable statement about observable behavior that should generate analyst attention. |
+| Data contract | The minimum telemetry, fields, timing, and normalization assumptions required for the detection to work. |
+| Positive test | Input that should cause the detection to match. |
+| Negative test | Benign or unrelated input that should not match. |
+| False positive | A technically correct match that is not operationally suspicious in context. |
+| False negative | Relevant behavior that the detection fails to match. |
+| Tuning | Adjusting logic, thresholds, scope, or exceptions to improve operational usefulness. |
+
+## Start with behavior, not syntax
+
+Weak starting point:
+
+```text
+Find suspicious DNS.
+```
+
+Better:
+
+```text
+Identify a single internal host that issues an unusually high number of DNS queries
+for distinct subdomains beneath the same parent domain inside a short period.
+```
+
+The second statement tells you what data you need and what kind of logic the engine must support.
+
+## Convert the idea into a data contract
+
+For the DNS example:
+
+| Requirement | Why it matters |
+| --- | --- |
+| Timestamp | Required for a bounded observation window. |
+| Source host | Required to group activity by system. |
+| Query name | Required to count or compare names. |
+| DNS event type | Prevents unrelated events from entering the analytic. |
+| Normalized parent domain | Needed if the rule groups subdomains by registrable domain. |
+
+If one of those fields is absent, the detection must change or the ingest pipeline must provide it.
+
+<Warning>
+Never assume field names are portable between Security Onion, Elastic Agent, Suricata EVE, Zeek, and OpenSearch pipelines. Inspect the actual indexed document before writing production logic.
+</Warning>
+
+## Lab PCAP
+
+Use **`dns.cap`** from the maintained [Wireshark SampleCaptures](https://wiki.wireshark.org/SampleCaptures) page. Wireshark describes it as a libpcap capture containing various DNS lookups.
+
+This is a benign baseline capture. The objective is not to find an attack. The objective is to practice defining observable behavior and proving what the PCAP can and cannot support.
+
+## Step 1 — Inspect the capture
+
+Open the file in Wireshark and apply:
+
+```text
+dns
+```
+
+Then inspect queries:
+
+```text
+dns.flags.response == 0
+```
+
+Record:
+
+```text
+Source IP(s):
+Query count:
+Unique query names:
+Query types:
+Capture duration:
+```
+
+## Step 2 — Extract fields with TShark
+
+```bash
+tshark -r dns.cap \
+  -Y "dns.flags.response == 0" \
+  -T fields \
+  -e frame.time_epoch \
+  -e ip.src \
+  -e dns.qry.name
+```
+
+What this does:
+
+- `-r` reads an existing capture;
+- `-Y` applies a Wireshark display filter;
+- `-T fields` prints selected fields instead of full packet summaries;
+- `-e` selects the evidence you want to review.
+
+## Step 3 — Write the hypothesis
+
+Use this structure:
+
+```text
+When <entity> performs <observable behavior>
+within <time scope>, using <telemetry>,
+create a finding containing <evidence fields>
+so an analyst can determine <investigative question>.
+```
+
+Example:
+
+```text
+When one source host generates repeated DNS queries to many names in a bounded interval,
+use DNS telemetry to summarize the host, names, count, and time range so an analyst can
+assess whether the activity reflects normal application behavior or unusual automated lookup activity.
+```
+
+## Step 4 — Define test cases
+
+### Positive test
+
+```text
+One host generates enough DNS events to exceed the chosen threshold.
+```
+
+### Negative tests
+
+```text
+A host performs only a few lookups.
+Multiple hosts collectively exceed the threshold but no individual host does.
+Responses are present without corresponding query events in the indexed data.
+Approved infrastructure generates repetitive health-check DNS.
+```
+
+## Step 5 — Define tuning dimensions
+
+Common tuning choices include:
+
+- count threshold;
+- distinct-name threshold;
+- time window;
+- source subnet or host role;
+- allowlisted resolvers, scanners, or monitoring tools;
+- parent domain scope;
+- whether only successful or all DNS outcomes matter.
+
+## Detection specification template
+
+```text
+Name:
+Purpose:
+Hypothesis:
+Required telemetry:
+Required fields:
+Grouping key:
+Time window:
+Threshold:
+Positive fixture:
+Negative fixtures:
+Expected false positives:
+Evidence returned to analyst:
+ATT&CK mapping, if relevant:
+Owner:
+Review cadence:
+```
+
+## Validation checkpoint
+
+Before moving to ES|QL, you should be able to answer:
+
+1. Which parts of the hypothesis require aggregation?
+2. Which parts can be expressed as simple filtering?
+3. What changes if the source IP field is missing?
+4. What benign systems could exceed the same threshold?
+5. What evidence should be preserved in an alert so another analyst can validate it?
+
+<CardGroup cols={2}>
+  <Card title="Next: ES|QL" href="/training/detection-engineering/esql" icon="database">Build an aggregation-capable Elastic detection.</Card>
+  <Card title="Network Forensics" href="/training/network-forensics/dns-investigation" icon="globe">Reinforce DNS packet analysis before detection logic.</Card>
+</CardGroup>

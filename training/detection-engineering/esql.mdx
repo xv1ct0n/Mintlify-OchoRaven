@@ -1,0 +1,263 @@
+---
+title: "Lesson 2: ES|QL Detection Engineering"
+sidebarTitle: "2. ES|QL"
+description: "Write and test ES|QL detections using filtering, aggregation, thresholds, and alert-oriented result sets."
+icon: "database"
+---
+
+# Lesson 2 — ES|QL detection engineering
+
+ES|QL is Elasticsearch's piped query language. It is well suited to detections that need to **filter, transform, aggregate, calculate, or threshold** data before producing an alert-oriented result set.
+
+Elastic's current documentation describes ES|QL as a pipeline language that starts with a source such as `FROM`, then chains commands such as `WHERE`, `EVAL`, and `STATS` with pipes.
+
+## When ES|QL is the right tool
+
+Use ES|QL when the detection needs logic such as:
+
+```text
+filter events
+    ↓
+group by entity
+    ↓
+count / aggregate
+    ↓
+calculate a derived value
+    ↓
+filter the aggregate
+    ↓
+return one row per finding
+```
+
+Elastic specifically recommends ES|QL detection rules when aggregation or transformation is required. If a simple field/value match is enough, a KQL-backed custom query may be simpler. Ordered event sequences are usually better suited to EQL rather than ES|QL.
+
+## Prerequisites
+
+You need:
+
+- Elasticsearch/Kibana with ES|QL support;
+- DNS telemetry indexed into Elasticsearch;
+- permission to query the target index or data stream;
+- knowledge of the actual field mappings in your environment.
+
+<Warning>
+Field names below are examples. Security Onion, Elastic integrations, Suricata EVE pipelines, custom Logstash pipelines, and ECS-normalized data can expose different paths. Verify mappings before copying production logic.
+</Warning>
+
+## Lab PCAP
+
+Use **`dns.cap`** from [Wireshark SampleCaptures](https://wiki.wireshark.org/SampleCaptures). Process it through your authorized lab sensor or Suricata so DNS events become indexed documents.
+
+A common offline workflow is:
+
+```text
+dns.cap
+   ↓
+Suricata or another parser
+   ↓
+JSON events
+   ↓
+Elasticsearch ingest
+   ↓
+ES|QL query
+```
+
+Example Suricata replay:
+
+```bash
+mkdir -p out
+suricata -r dns.cap -l out
+```
+
+Inspect `out/eve.json` before ingesting it so you understand the fields being produced.
+
+## Step 1 — Discover the schema first
+
+Start broad:
+
+```esql
+FROM logs-*
+| LIMIT 20
+```
+
+Then narrow to likely DNS events using fields that exist in your environment. An ECS-oriented example might look like:
+
+```esql
+FROM logs-*
+| WHERE network.protocol == "dns"
+| KEEP @timestamp, source.ip, dns.question.name
+| LIMIT 50
+```
+
+If this returns no rows, do **not** immediately assume the PCAP lacks DNS. First inspect:
+
+- the actual index pattern;
+- whether the parser populated `network.protocol`;
+- whether DNS fields use ECS names or vendor-specific names;
+- the active time range;
+- whether ingest completed successfully.
+
+## Step 2 — Build a simple event filter
+
+```esql
+FROM logs-*
+| WHERE network.protocol == "dns"
+| WHERE dns.question.name IS NOT NULL
+| KEEP @timestamp, source.ip, dns.question.name
+| SORT @timestamp ASC
+```
+
+This query is useful for investigation but is not yet a detection. It returns raw matching events.
+
+## Step 3 — Add aggregation
+
+A detection hypothesis often needs to collapse many events into one finding row.
+
+```esql
+FROM logs-*
+| WHERE network.protocol == "dns"
+| WHERE dns.question.name IS NOT NULL
+| STATS query_count = COUNT(*) BY source.ip
+| SORT query_count DESC
+```
+
+`STATS ... BY` groups rows and calculates an aggregate for each group. Here, one result row represents one source IP.
+
+## Step 4 — Apply a threshold after aggregation
+
+```esql
+FROM logs-*
+| WHERE network.protocol == "dns"
+| WHERE dns.question.name IS NOT NULL
+| STATS query_count = COUNT(*) BY source.ip
+| WHERE query_count >= 10
+| SORT query_count DESC
+```
+
+The placement of the second `WHERE` matters. The first `WHERE` filters source events. The second filters the aggregated result.
+
+## Step 5 — Count distinct values
+
+For a subdomain-style analytic, distinct-name count is often more useful than total event count.
+
+Depending on your Elastic version and available functions, use the supported cardinality function documented for that version. A conceptual result should look like:
+
+```text
+source.ip       total_queries    unique_names
+192.0.2.25      54               41
+```
+
+Do not invent a function name from another query language. Confirm the function in the [ES|QL reference](https://www.elastic.co/docs/reference/query-languages/esql) before deployment.
+
+## Step 6 — Return analyst evidence
+
+A useful detection should return enough context to validate the result.
+
+Poor result:
+
+```text
+source.ip = 192.0.2.25
+```
+
+Better result:
+
+```text
+source.ip = 192.0.2.25
+query_count = 54
+first_seen = ...
+last_seen = ...
+```
+
+When your version supports the required aggregate functions, include bounded context such as first/last timestamps and counts. Avoid returning dozens of unnecessary fields that make the alert harder to triage.
+
+## Step 7 — Convert the query into an Elastic Security rule
+
+Elastic's ES|QL detection rule behavior is important: **each row returned by the query becomes an alert**.
+
+That means your query shape is part of your rule design.
+
+If you group by `source.ip`, you are effectively deciding that one row/alert represents one source IP meeting the condition.
+
+Before saving the rule, document:
+
+```text
+Rule interval:
+Look-back window:
+Index/data stream:
+Expected rows per execution:
+Grouping semantics:
+Suppression/deduplication approach:
+Required alert fields:
+```
+
+## Example: DNS volume analytic
+
+```esql
+FROM logs-*
+| WHERE network.protocol == "dns"
+| WHERE source.ip IS NOT NULL
+| WHERE dns.question.name IS NOT NULL
+| STATS query_count = COUNT(*) BY source.ip
+| WHERE query_count >= 10
+| SORT query_count DESC
+```
+
+### What it detects
+
+Sources that generate at least ten indexed DNS query events within the rule's effective query window.
+
+### What it does not detect
+
+It does not inherently identify tunneling, DGA activity, malicious domains, or compromise. It identifies **volume**.
+
+### Likely benign causes
+
+- browsers loading many resources;
+- software update agents;
+- vulnerability scanners;
+- monitoring tools;
+- domain controllers and infrastructure services;
+- recursive resolver behavior if the wrong source field is used.
+
+## Validation workflow
+
+<Steps>
+  <Step title="Replay the PCAP">Process `dns.cap` through the same parser used by the lab pipeline.</Step>
+  <Step title="Confirm events">Verify DNS documents exist before testing the analytic.</Step>
+  <Step title="Run below threshold">Choose a threshold higher than the sample produces and confirm zero findings.</Step>
+  <Step title="Run at a reachable threshold">Lower the threshold and confirm expected grouped rows appear.</Step>
+  <Step title="Inspect source events">Drill back into the raw DNS events for a returned source.</Step>
+  <Step title="Document the boundary">Record exactly what the query proves and what requires additional context.</Step>
+</Steps>
+
+## Troubleshooting
+
+| Symptom | Likely cause | Check |
+| --- | --- | --- |
+| No rows | Wrong data source or time window | `FROM` target, ingest time, document timestamps |
+| Unknown field | Mapping differs | Inspect one document and field capabilities |
+| Type error | Field mapped differently across indices | Narrow `FROM`, inspect mappings, avoid conflicting wildcards |
+| Too many alerts | Grouping too granular or threshold too low | Review `BY` fields and rule window |
+| Duplicate-looking alerts | Rule/window/deduplication behavior | Review Elastic rule semantics for your version |
+
+## Senior analyst exercise
+
+Rewrite the detection specification so that it distinguishes:
+
+1. raw DNS query volume;
+2. unique-name volume;
+3. unique subdomains beneath one parent domain;
+4. repeated queries with high failure/NXDOMAIN rates.
+
+For each version, list the additional fields or transformations required.
+
+## Official references
+
+- [ES|QL reference](https://www.elastic.co/docs/reference/query-languages/esql)
+- [Use ES|QL in Kibana](https://www.elastic.co/docs/explore-analyze/query-filter/languages/esql-kibana)
+- [Elastic Security ES|QL rules](https://www.elastic.co/docs/solutions/security/detect-and-alert/esql)
+
+<CardGroup cols={2}>
+  <Card title="Next: KQL" href="/training/detection-engineering/kql" icon="filter">Learn precise filter-oriented detections and KQL's boundaries.</Card>
+  <Card title="Previous: Foundations" href="/training/detection-engineering/foundations" icon="arrow-left">Return to hypothesis and data-contract design.</Card>
+</CardGroup>
