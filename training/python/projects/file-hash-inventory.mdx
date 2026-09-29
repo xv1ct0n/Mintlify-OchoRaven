@@ -1,0 +1,1352 @@
+---
+title: "Project 3: File Hash Inventory"
+description: "Build a defensive file-inventory utility while learning filesystem traversal, streaming I/O, SHA-256 hashing, metadata collection, and resilient automation."
+icon: "fingerprint"
+---
+
+# Project 3 — File Hash Inventory
+
+Projects 1 and 2 taught you to normalize indicators and analyze event telemetry. Project 3 shifts from structured security data to the filesystem. You will build a tool that recursively discovers files, collects metadata, calculates SHA-256 hashes, handles inaccessible files, and exports a reusable inventory.
+
+<Info>
+**Final capability:** Build `hash_inventory.py`, a command-line utility that recursively inventories an authorized directory, calculates SHA-256 hashes without loading entire files into memory, records file metadata, continues through recoverable errors, prints a concise summary, and exports CSV and JSON results.
+</Info>
+
+## Operational intent
+
+File hashes are commonly used in defensive workflows for integrity checking, incident scoping, malware triage, allow/block-list support, duplicate identification, and comparison of filesystem state over time.
+
+A hash answers a narrow question: **do these bytes produce the same digest?** It does not determine whether a file is malicious.
+
+<Warning>
+A SHA-256 value is an identifier derived from file contents, not a malware verdict. A known hash may provide useful context, but classification requires additional evidence.
+</Warning>
+
+## Skills introduced
+
+This project reinforces previous Python fundamentals and introduces:
+
+- recursive filesystem traversal;
+- files versus directories;
+- `Path.rglob()`;
+- file metadata with `stat()`;
+- binary file I/O;
+- streaming large files in chunks;
+- `hashlib` and SHA-256;
+- byte strings;
+- CSV output;
+- deterministic sorting;
+- relative versus absolute paths;
+- resilient per-file error handling;
+- summary statistics;
+- duplicate-content identification;
+- designing tools that avoid modifying evidence.
+
+## Final project structure
+
+```text
+file-hash-inventory/
+├── hash_inventory.py
+├── samples/
+│   ├── notes.txt
+│   ├── config.txt
+│   └── nested/
+│       └── example.bin
+├── output/
+└── README.md
+```
+
+No third-party packages are required.
+
+---
+
+# Lesson 1 — Understand the problem
+
+Suppose an analyst receives a directory containing collected files. Manually recording filenames, sizes, and hashes is slow and error-prone.
+
+We want Python to transform:
+
+```text
+samples/
+├── notes.txt
+├── config.txt
+└── nested/
+    └── example.bin
+```
+
+into structured records such as:
+
+```text
+path,size_bytes,sha256
+notes.txt,128,abc123...
+config.txt,240,def456...
+nested/example.bin,4096,789abc...
+```
+
+The processing pipeline will be:
+
+```text
+Target Directory
+      ↓
+Discover Files
+      ↓
+Collect Metadata
+      ↓
+Read Bytes in Chunks
+      ↓
+Calculate SHA-256
+      ↓
+Create Inventory Record
+      ↓
+Continue Through Errors
+      ↓
+CSV / JSON Report
+```
+
+---
+
+# Lesson 2 — Create safe sample files
+
+Create the project directories:
+
+```bash
+mkdir file-hash-inventory
+cd file-hash-inventory
+mkdir -p samples/nested output
+```
+
+Create harmless sample content:
+
+```bash
+echo "Security training sample" > samples/notes.txt
+echo "mode=training" > samples/config.txt
+echo "Synthetic binary placeholder" > samples/nested/example.bin
+```
+
+On Windows PowerShell, equivalent commands are:
+
+```powershell
+New-Item -ItemType Directory -Force samples\nested, output
+"Security training sample" | Set-Content samples\notes.txt
+"mode=training" | Set-Content samples\config.txt
+"Synthetic binary placeholder" | Set-Content samples\nested\example.bin
+```
+
+The extension does not determine how hashing works. SHA-256 operates on bytes regardless of whether a file is text, executable code, an image, a document, or another format.
+
+---
+
+# Lesson 3 — Revisit `Path`
+
+Import:
+
+```python
+from pathlib import Path
+```
+
+Create a path:
+
+```python
+root = Path("samples")
+```
+
+Useful checks:
+
+```python
+print(root.exists())
+print(root.is_dir())
+print(root.resolve())
+```
+
+## Relative and absolute paths
+
+`Path("samples")` is relative to the current working directory.
+
+`root.resolve()` produces an absolute path.
+
+For reports, relative paths are often preferable because they are portable and reveal less host-specific filesystem information.
+
+Example:
+
+```text
+Better report path:
+nested/example.bin
+
+Less portable report path:
+/home/analyst/projects/file-hash-inventory/samples/nested/example.bin
+```
+
+---
+
+# Lesson 4 — Discover files recursively
+
+Use `rglob()`:
+
+```python
+for path in root.rglob("*"):
+    print(path)
+```
+
+This returns files and directories beneath the root.
+
+Filter to files:
+
+```python
+for path in root.rglob("*"):
+    if path.is_file():
+        print(path)
+```
+
+Create a function:
+
+```python
+def discover_files(root: Path) -> list[Path]:
+    """Return regular files recursively discovered beneath root."""
+    return sorted(path for path in root.rglob("*") if path.is_file())
+```
+
+## Why sort?
+
+Filesystem traversal order can vary. Sorting gives the tool predictable output, which helps testing and comparison.
+
+<Info>
+Deterministic output is a valuable engineering property. The same input should produce the same ordering whenever practical.
+</Info>
+
+---
+
+# Lesson 5 — Understand binary file I/O
+
+In earlier projects you mostly read text using:
+
+```python
+file.open("r", encoding="utf-8")
+```
+
+Hashes must be calculated over the file's **raw bytes**.
+
+Binary mode uses `rb`:
+
+```python
+with path.open("rb") as file:
+    data = file.read()
+```
+
+The `b` means binary.
+
+A Python byte string looks like:
+
+```python
+b"example"
+```
+
+## Why not decode the file first?
+
+Decoding interprets bytes as text and can fail or alter representation. A file hash must reflect the original byte sequence exactly.
+
+---
+
+# Lesson 6 — Calculate your first SHA-256
+
+Import:
+
+```python
+import hashlib
+```
+
+Try:
+
+```python
+data = b"hello"
+digest = hashlib.sha256(data).hexdigest()
+print(digest)
+```
+
+`hashlib.sha256()` creates or computes a SHA-256 hash.
+
+`hexdigest()` returns the digest as hexadecimal text.
+
+For identical bytes:
+
+```text
+same bytes → same SHA-256
+```
+
+A changed byte should normally produce a very different digest.
+
+## Defensive use
+
+This property lets analysts compare files without manually comparing every byte. It is useful for answering questions such as:
+
+```text
+Is this collected file identical to another sample?
+Did this file change between two inventories?
+Which hosts contain files with the same content?
+```
+
+---
+
+# Lesson 7 — Why reading an entire file is a problem
+
+This works for tiny files:
+
+```python
+data = file.read()
+```
+
+But imagine hashing a 20 GB disk image or archive. Loading the entire file into RAM is unnecessary.
+
+Instead, read a small block, update the hash, then read the next block:
+
+```text
+file
+ ↓
+[chunk 1] → hash.update()
+[chunk 2] → hash.update()
+[chunk 3] → hash.update()
+...
+ ↓
+final digest
+```
+
+This is **streaming I/O**.
+
+---
+
+# Lesson 8 — Hash files in chunks
+
+Define a chunk size:
+
+```python
+CHUNK_SIZE = 1024 * 1024
+```
+
+That is 1 MiB.
+
+Create the function:
+
+```python
+def sha256_file(path: Path) -> str:
+    """Calculate a file's SHA-256 digest using streaming reads."""
+    digest = hashlib.sha256()
+
+    with path.open("rb") as file:
+        while chunk := file.read(CHUNK_SIZE):
+            digest.update(chunk)
+
+    return digest.hexdigest()
+```
+
+## New concept: the walrus operator
+
+This line:
+
+```python
+while chunk := file.read(CHUNK_SIZE):
+```
+
+assigns the bytes to `chunk` and evaluates whether data was returned.
+
+When end-of-file is reached, `read()` returns `b""`, which is falsy, so the loop ends.
+
+Equivalent longer code would be:
+
+```python
+while True:
+    chunk = file.read(CHUNK_SIZE)
+
+    if not chunk:
+        break
+
+    digest.update(chunk)
+```
+
+Either form is valid. Use the one you understand most clearly.
+
+---
+
+# Lesson 9 — Verify hashing behavior
+
+Test one file:
+
+```python
+sample = Path("samples/notes.txt")
+print(sha256_file(sample))
+```
+
+Run it twice without modifying the file. The hash should remain identical.
+
+Now change the file:
+
+```bash
+echo "changed" >> samples/notes.txt
+```
+
+Hash it again. The digest should change.
+
+## What did you prove?
+
+You demonstrated the foundation of integrity comparison:
+
+```text
+Version A bytes → hash A
+Version A bytes → hash A
+Modified bytes  → hash B
+```
+
+<Warning>
+Hash comparison can show that content differs or matches. It does not explain **why** the content changed or whether the change was authorized.
+</Warning>
+
+---
+
+# Lesson 10 — Collect file metadata
+
+A hash is more useful when accompanied by context.
+
+Python's `stat()` provides filesystem metadata:
+
+```python
+metadata = path.stat()
+print(metadata.st_size)
+```
+
+`st_size` is the file size in bytes.
+
+Create an inventory record:
+
+```python
+def inventory_file(path: Path, root: Path) -> dict:
+    """Create an inventory record for one file."""
+    metadata = path.stat()
+
+    return {
+        "path": path.relative_to(root).as_posix(),
+        "size_bytes": metadata.st_size,
+        "sha256": sha256_file(path),
+    }
+```
+
+## Why `relative_to()`?
+
+If the full path is:
+
+```text
+/home/analyst/project/samples/nested/example.bin
+```
+
+and `root` is:
+
+```text
+/home/analyst/project/samples
+```
+
+then:
+
+```python
+path.relative_to(root)
+```
+
+becomes:
+
+```text
+nested/example.bin
+```
+
+## Why `as_posix()`?
+
+It produces `/`-separated paths consistently in the report, including when Python is running on Windows.
+
+---
+
+# Lesson 11 — Handle errors per file
+
+A directory may contain a file that disappears, becomes inaccessible, or cannot be read.
+
+A fragile program might terminate the entire scan.
+
+A resilient inventory should instead record the error and continue.
+
+```python
+def build_inventory(root: Path) -> tuple[list[dict], list[dict]]:
+    """Inventory files beneath root while preserving recoverable errors."""
+    records = []
+    errors = []
+
+    for path in discover_files(root):
+        try:
+            records.append(inventory_file(path, root))
+        except OSError as exc:
+            errors.append({
+                "path": path.relative_to(root).as_posix(),
+                "error": str(exc),
+            })
+
+    return records, errors
+```
+
+## Error scope matters
+
+Notice where `try` appears: **inside the loop**.
+
+```text
+file 1 → success
+file 2 → error → record error
+file 3 → success
+file 4 → success
+```
+
+If the exception handler surrounded the entire loop, one failure could prevent later files from being processed.
+
+This is a major lesson for defensive automation: decide whether an error should terminate the **item**, the **batch**, or the **program**.
+
+---
+
+# Lesson 12 — Consider filesystem race conditions
+
+A file can change between discovery, metadata collection, and hashing.
+
+For example:
+
+```text
+1. discover report.log
+2. collect size
+3. another process modifies report.log
+4. calculate hash
+```
+
+Your metadata and digest may then describe slightly different states.
+
+This is sometimes called a time-of-check/time-of-use problem.
+
+For a beginner inventory tool, document this limitation rather than attempting complex filesystem snapshotting.
+
+<Info>
+Good engineering includes knowing what your program **cannot guarantee**. Production forensic acquisition and integrity systems may use snapshots, filesystem-specific mechanisms, or controlled evidence procedures.
+</Info>
+
+---
+
+# Lesson 13 — Export CSV
+
+CSV is useful for spreadsheets, quick review, and ingestion into many analysis tools.
+
+Import:
+
+```python
+import csv
+```
+
+Create:
+
+```python
+def write_csv(records: list[dict], output_path: Path) -> None:
+    """Write inventory records to CSV."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    fieldnames = ["path", "size_bytes", "sha256"]
+
+    with output_path.open("w", encoding="utf-8", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(records)
+```
+
+## Why `DictWriter`?
+
+Your records already use dictionaries:
+
+```python
+{
+    "path": "notes.txt",
+    "size_bytes": 25,
+    "sha256": "..."
+}
+```
+
+`DictWriter` maps those keys naturally to CSV columns.
+
+## Why `newline=""`?
+
+Python's CSV documentation recommends opening CSV files this way so the module can correctly manage newline behavior across platforms.
+
+---
+
+# Lesson 14 — Export JSON
+
+Project 1 and Project 2 used JSON. Reuse the pattern:
+
+```python
+import json
+
+
+def write_json(report: dict, output_path: Path) -> None:
+    """Write the full inventory report as JSON."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with output_path.open("w", encoding="utf-8") as file:
+        json.dump(report, file, indent=2)
+```
+
+CSV and JSON serve different purposes:
+
+| Format | Strength |
+| --- | --- |
+| CSV | simple tabular review and spreadsheet import |
+| JSON | nested structures, metadata, errors, and automation |
+
+A useful tool can support both.
+
+---
+
+# Lesson 15 — Find duplicate content
+
+If two files have the same SHA-256, they contain the same byte sequence for practical inventory purposes.
+
+Group paths by hash:
+
+```python
+from collections import defaultdict
+
+
+def find_duplicates(records: list[dict]) -> list[dict]:
+    """Return groups of inventory records sharing the same SHA-256."""
+    by_hash = defaultdict(list)
+
+    for record in records:
+        by_hash[record["sha256"]].append(record["path"])
+
+    duplicates = []
+
+    for sha256, paths in by_hash.items():
+        if len(paths) > 1:
+            duplicates.append({
+                "sha256": sha256,
+                "paths": sorted(paths),
+            })
+
+    return duplicates
+```
+
+## Why is this useful?
+
+Duplicate identification can support:
+
+- scoping repeated collected artifacts;
+- finding identical binaries stored under different names;
+- reducing redundant analyst review;
+- understanding replicated configuration or tool files.
+
+Again, identical content does not establish maliciousness.
+
+---
+
+# Lesson 16 — Build summary statistics
+
+Create a report:
+
+```python
+def build_report(root: Path, records: list[dict], errors: list[dict]) -> dict:
+    duplicates = find_duplicates(records)
+    total_bytes = sum(record["size_bytes"] for record in records)
+
+    return {
+        "summary": {
+            "root": str(root.resolve()),
+            "files_hashed": len(records),
+            "files_failed": len(errors),
+            "total_bytes": total_bytes,
+            "duplicate_groups": len(duplicates),
+        },
+        "files": records,
+        "duplicates": duplicates,
+        "errors": errors,
+    }
+```
+
+This separates:
+
+```text
+summary → overall scan information
+files → individual inventory records
+duplicates → derived analysis
+errors → incomplete processing information
+```
+
+That structure is easier for humans and programs to consume.
+
+---
+
+# Lesson 17 — Add command-line arguments
+
+Import:
+
+```python
+import argparse
+```
+
+Add:
+
+```python
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Recursively inventory files and calculate SHA-256 hashes."
+    )
+    parser.add_argument("directory", type=Path, help="Directory to inventory")
+    parser.add_argument(
+        "--csv",
+        type=Path,
+        default=Path("output/file_inventory.csv"),
+        help="CSV inventory output path",
+    )
+    parser.add_argument(
+        "--json",
+        type=Path,
+        default=Path("output/file_inventory.json"),
+        help="JSON report output path",
+    )
+    return parser.parse_args()
+```
+
+The intended command becomes:
+
+```bash
+python3 hash_inventory.py samples
+```
+
+Or:
+
+```bash
+python3 hash_inventory.py samples \
+  --csv output/inventory.csv \
+  --json output/report.json
+```
+
+---
+
+# Lesson 18 — Validate the target directory
+
+Before scanning:
+
+```python
+if not args.directory.exists():
+    print(f"Error: path does not exist: {args.directory}")
+    return 1
+
+if not args.directory.is_dir():
+    print(f"Error: path is not a directory: {args.directory}")
+    return 1
+```
+
+This produces a clear user-facing error instead of allowing a later operation to fail cryptically.
+
+---
+
+# Lesson 19 — Print a useful summary
+
+```python
+def print_summary(report: dict) -> None:
+    summary = report["summary"]
+
+    print("File Hash Inventory Summary")
+    print("=" * 27)
+    print(f"Files hashed: {summary['files_hashed']}")
+    print(f"Files failed: {summary['files_failed']}")
+    print(f"Bytes processed: {summary['total_bytes']}")
+    print(f"Duplicate groups: {summary['duplicate_groups']}")
+
+    if report["errors"]:
+        print("\nFiles requiring review:")
+        for error in report["errors"]:
+            print(f"  - {error['path']}: {error['error']}")
+```
+
+The console provides immediate status; the output files contain detailed artifacts.
+
+---
+
+# Lesson 20 — Assemble `main()`
+
+```python
+def main() -> int:
+    args = parse_args()
+
+    if not args.directory.exists():
+        print(f"Error: path does not exist: {args.directory}")
+        return 1
+
+    if not args.directory.is_dir():
+        print(f"Error: path is not a directory: {args.directory}")
+        return 1
+
+    try:
+        records, errors = build_inventory(args.directory)
+        report = build_report(args.directory, records, errors)
+        write_csv(records, args.csv)
+        write_json(report, args.json)
+    except OSError as exc:
+        print(f"Error: unable to complete inventory: {exc}")
+        return 1
+
+    print_summary(report)
+    print(f"\nCSV inventory: {args.csv}")
+    print(f"JSON report: {args.json}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```
+
+The high-level architecture is now:
+
+```text
+CLI
+ ↓
+Validate Target
+ ↓
+Discover Files
+ ↓
+┌──────────── per file ────────────┐
+│ metadata → stream bytes → SHA256 │
+│        success / error           │
+└──────────────────────────────────┘
+ ↓
+Duplicate Analysis
+ ↓
+Build Report
+ ↓
+CSV + JSON + Console Summary
+```
+
+---
+
+# Lesson 21 — Assemble the final program
+
+Your finished `hash_inventory.py` should contain:
+
+```python
+import argparse
+import csv
+import hashlib
+import json
+from collections import defaultdict
+from pathlib import Path
+
+
+CHUNK_SIZE = 1024 * 1024
+
+
+def discover_files(root: Path) -> list[Path]:
+    """Return regular files recursively discovered beneath root."""
+    return sorted(path for path in root.rglob("*") if path.is_file())
+
+
+def sha256_file(path: Path) -> str:
+    """Calculate a file's SHA-256 digest using streaming reads."""
+    digest = hashlib.sha256()
+
+    with path.open("rb") as file:
+        while chunk := file.read(CHUNK_SIZE):
+            digest.update(chunk)
+
+    return digest.hexdigest()
+
+
+def inventory_file(path: Path, root: Path) -> dict:
+    """Create an inventory record for one file."""
+    metadata = path.stat()
+
+    return {
+        "path": path.relative_to(root).as_posix(),
+        "size_bytes": metadata.st_size,
+        "sha256": sha256_file(path),
+    }
+
+
+def build_inventory(root: Path) -> tuple[list[dict], list[dict]]:
+    """Inventory files beneath root while preserving recoverable errors."""
+    records = []
+    errors = []
+
+    for path in discover_files(root):
+        try:
+            records.append(inventory_file(path, root))
+        except OSError as exc:
+            errors.append({
+                "path": path.relative_to(root).as_posix(),
+                "error": str(exc),
+            })
+
+    return records, errors
+
+
+def find_duplicates(records: list[dict]) -> list[dict]:
+    """Return groups of inventory records sharing the same SHA-256."""
+    by_hash = defaultdict(list)
+
+    for record in records:
+        by_hash[record["sha256"]].append(record["path"])
+
+    duplicates = []
+
+    for sha256, paths in by_hash.items():
+        if len(paths) > 1:
+            duplicates.append({
+                "sha256": sha256,
+                "paths": sorted(paths),
+            })
+
+    return duplicates
+
+
+def build_report(root: Path, records: list[dict], errors: list[dict]) -> dict:
+    duplicates = find_duplicates(records)
+    total_bytes = sum(record["size_bytes"] for record in records)
+
+    return {
+        "summary": {
+            "root": str(root.resolve()),
+            "files_hashed": len(records),
+            "files_failed": len(errors),
+            "total_bytes": total_bytes,
+            "duplicate_groups": len(duplicates),
+        },
+        "files": records,
+        "duplicates": duplicates,
+        "errors": errors,
+    }
+
+
+def write_csv(records: list[dict], output_path: Path) -> None:
+    """Write inventory records to CSV."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = ["path", "size_bytes", "sha256"]
+
+    with output_path.open("w", encoding="utf-8", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(records)
+
+
+def write_json(report: dict, output_path: Path) -> None:
+    """Write the full inventory report as JSON."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with output_path.open("w", encoding="utf-8") as file:
+        json.dump(report, file, indent=2)
+
+
+def print_summary(report: dict) -> None:
+    summary = report["summary"]
+
+    print("File Hash Inventory Summary")
+    print("=" * 27)
+    print(f"Files hashed: {summary['files_hashed']}")
+    print(f"Files failed: {summary['files_failed']}")
+    print(f"Bytes processed: {summary['total_bytes']}")
+    print(f"Duplicate groups: {summary['duplicate_groups']}")
+
+    if report["errors"]:
+        print("\nFiles requiring review:")
+        for error in report["errors"]:
+            print(f"  - {error['path']}: {error['error']}")
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Recursively inventory files and calculate SHA-256 hashes."
+    )
+    parser.add_argument("directory", type=Path, help="Directory to inventory")
+    parser.add_argument(
+        "--csv",
+        type=Path,
+        default=Path("output/file_inventory.csv"),
+        help="CSV inventory output path",
+    )
+    parser.add_argument(
+        "--json",
+        type=Path,
+        default=Path("output/file_inventory.json"),
+        help="JSON report output path",
+    )
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+
+    if not args.directory.exists():
+        print(f"Error: path does not exist: {args.directory}")
+        return 1
+
+    if not args.directory.is_dir():
+        print(f"Error: path is not a directory: {args.directory}")
+        return 1
+
+    try:
+        records, errors = build_inventory(args.directory)
+        report = build_report(args.directory, records, errors)
+        write_csv(records, args.csv)
+        write_json(report, args.json)
+    except OSError as exc:
+        print(f"Error: unable to complete inventory: {exc}")
+        return 1
+
+    print_summary(report)
+    print(f"\nCSV inventory: {args.csv}")
+    print(f"JSON report: {args.json}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```
+
+---
+
+# Lesson 22 — Run the finished project
+
+Run:
+
+```bash
+python3 hash_inventory.py samples
+```
+
+Example output:
+
+```text
+File Hash Inventory Summary
+===========================
+Files hashed: 3
+Files failed: 0
+Bytes processed: 70
+Duplicate groups: 0
+
+CSV inventory: output/file_inventory.csv
+JSON report: output/file_inventory.json
+```
+
+Exact byte counts and hashes depend on how your operating system/editor created the sample files.
+
+Inspect the CSV:
+
+```text
+path,size_bytes,sha256
+config.txt,...,...
+nested/example.bin,...,...
+notes.txt,...,...
+```
+
+Then inspect the JSON report for summary, file, duplicate, and error sections.
+
+---
+
+# Lesson 23 — Create and detect a duplicate
+
+Copy a file without changing its contents:
+
+```bash
+cp samples/notes.txt samples/notes-copy.txt
+```
+
+PowerShell:
+
+```powershell
+Copy-Item samples\notes.txt samples\notes-copy.txt
+```
+
+Run the inventory again.
+
+The JSON report should now contain a duplicate group similar to:
+
+```json
+{
+  "sha256": "<same digest>",
+  "paths": [
+    "notes-copy.txt",
+    "notes.txt"
+  ]
+}
+```
+
+You have now used a cryptographic hash to identify content equality despite different filenames.
+
+---
+
+# Lesson 24 — Test error handling
+
+Error testing varies by operating system and permissions. The goal is to understand behavior, not to damage files or alter security controls.
+
+Safe options include:
+
+- point the tool at a nonexistent directory;
+- pass a file instead of a directory;
+- temporarily use a lab file with permissions that your test account cannot read, where appropriate;
+- remove a test file during a deliberately slowed scan to observe a race condition.
+
+The expected principle is:
+
+```text
+recoverable single-file problem
+        ↓
+record error
+        ↓
+continue inventory
+```
+
+Do not use this exercise to bypass access controls. Only inventory directories and files you are authorized to read.
+
+---
+
+# Lesson 25 — Understand integrity baselines
+
+A single inventory describes one point in time.
+
+```text
+Baseline A
+file1 → hash X
+file2 → hash Y
+file3 → hash Z
+```
+
+A later inventory might show:
+
+```text
+Baseline B
+file1 → hash X      unchanged
+file2 → hash Q      changed
+file3 → missing
+file4 → new
+```
+
+This leads to a powerful defensive concept: **change detection**.
+
+The next logical capability is comparing two inventories to classify:
+
+- unchanged files;
+- modified files;
+- new files;
+- removed files.
+
+You will implement this yourself as the independent challenge.
+
+---
+
+# Lesson 26 — Document the project
+
+Your `README.md` should include:
+
+```markdown
+# File Hash Inventory
+
+## Purpose
+Recursively inventory an authorized directory and calculate SHA-256 hashes for defensive analysis and integrity comparison.
+
+## Requirements
+Python 3.10+
+
+## Usage
+python3 hash_inventory.py samples
+
+## Outputs
+- CSV file inventory
+- JSON report with summary, duplicates, and errors
+
+## Fields
+- path
+- size_bytes
+- sha256
+
+## Interpretation
+A matching SHA-256 indicates matching file content for practical inventory purposes. A hash does not determine whether a file is malicious.
+
+## Limitations
+Files may change during scanning. The tool does not create a filesystem snapshot and does not perform malware classification.
+
+## Security
+Run only against files and directories you are authorized to access. The program reads files in binary mode and does not intentionally modify source files.
+```
+
+---
+
+# Knowledge check
+
+Before continuing, explain these concepts without looking at the final solution:
+
+1. Why must hashing use binary rather than text mode?
+2. Why should large files be read in chunks?
+3. What does `digest.update()` do?
+4. Why use SHA-256 instead of a filename to identify content?
+5. What information does `Path.stat()` provide in this project?
+6. Why use paths relative to the inventory root in CSV output?
+7. Why is per-file exception handling important?
+8. What is deterministic output and why does sorting help?
+9. What can matching hashes tell an analyst?
+10. What can matching hashes **not** tell an analyst?
+11. Why might file metadata and the resulting hash describe slightly different points in time?
+12. Why are JSON and CSV both useful outputs?
+
+---
+
+# Independent challenge — Baseline comparison
+
+Extend the project so it can compare the current directory against a previous JSON inventory.
+
+Desired command:
+
+```bash
+python3 hash_inventory.py samples \
+  --baseline previous_inventory.json
+```
+
+Desired analysis:
+
+```text
+UNCHANGED  config.txt
+MODIFIED   notes.txt
+NEW        nested/new-file.txt
+REMOVED    old-file.txt
+```
+
+## Think before coding
+
+You already have almost everything required.
+
+A useful representation is:
+
+```python
+{
+    "notes.txt": {
+        "size_bytes": 25,
+        "sha256": "..."
+    }
+}
+```
+
+Then ask:
+
+```text
+Is the path in both inventories?
+    yes → are hashes equal?
+              yes → unchanged
+              no  → modified
+
+Only in current? → new
+Only in baseline? → removed
+```
+
+### Requirements
+
+Your comparison should produce structured JSON containing:
+
+```json
+{
+  "unchanged": [],
+  "modified": [],
+  "new": [],
+  "removed": []
+}
+```
+
+Do not treat a modification as malicious. Report the observed change and leave interpretation to the analyst.
+
+---
+
+# Stretch challenges
+
+After the core project works:
+
+- implement baseline comparison;
+- record modification timestamps;
+- add `--algorithm` with SHA-256 and SHA-512 options;
+- add `--exclude` patterns for known irrelevant directories;
+- calculate hashes only for selected extensions;
+- add a progress counter for large inventories;
+- add unit tests using temporary directories;
+- measure hashing throughput in MiB/s;
+- detect duplicate content using the existing SHA-256 groups;
+- export only changed files when comparing baselines;
+- investigate how symbolic links should be handled and document your decision;
+- add optional MIME/type identification using an appropriate library in a later version;
+- compare known hashes against an **authorized local** IOC list created by Project 1.
+
+## DCO bridge
+
+This project provides foundational building blocks for later defensive capabilities:
+
+```text
+File Inventory
+     │
+     ├──► Integrity Monitoring
+     ├──► Incident Scoping
+     ├──► IOC Matching
+     ├──► Duplicate Artifact Analysis
+     ├──► Malware Triage Pipelines
+     └──► Endpoint Collection Validation
+```
+
+Notice the progression across the first three beginner projects:
+
+```text
+Project 1
+IOC Normalization
+      ↓
+structured indicators
+
+Project 2
+Authentication Analysis
+      ↓
+structured behavioral findings
+
+Project 3
+File Inventory
+      ↓
+structured endpoint artifacts
+```
+
+These are three recurring defensive-engineering patterns: **normalize data, analyze events, inventory artifacts**.
+
+---
+
+# Completion criteria
+
+Project 3 is complete when your tool can:
+
+- accept a directory from the command line;
+- validate that the target exists and is a directory;
+- recursively discover files;
+- produce deterministic file ordering;
+- read files in binary mode;
+- calculate SHA-256 using chunked reads;
+- collect relative path and size metadata;
+- continue when an individual file cannot be processed;
+- preserve per-file errors for review;
+- identify duplicate file content by hash;
+- calculate overall scan statistics;
+- export a CSV inventory;
+- export a structured JSON report;
+- print a concise terminal summary;
+- avoid intentionally modifying source files;
+- document analytical meaning and limitations.
+
+At the end of the beginner path, you should now be able to look at a defensive problem and break it into a pipeline of small Python functions rather than starting with one large script.
+
+## Reference material
+
+- [Python `pathlib`](https://docs.python.org/3/library/pathlib.html)
+- [Python `hashlib`](https://docs.python.org/3/library/hashlib.html)
+- [Python file I/O](https://docs.python.org/3/tutorial/inputoutput.html#reading-and-writing-files)
+- [Python `csv`](https://docs.python.org/3/library/csv.html)
+- [Python `json`](https://docs.python.org/3/library/json.html)
+- [Python `collections`](https://docs.python.org/3/library/collections.html)
+- [Python `argparse`](https://docs.python.org/3/library/argparse.html)
+
+<CardGroup cols={2}>
+  <Card title="Previous: Authentication Log Summarizer" icon="arrow-left" href="/training/python/projects/auth-log-summarizer">
+    Review Project 2 and its event-analysis concepts.
+  </Card>
+  <Card title="Return to Python Beginner" icon="list" href="/training/python/beginner">
+    Review the complete beginner learning path.
+  </Card>
+</CardGroup>

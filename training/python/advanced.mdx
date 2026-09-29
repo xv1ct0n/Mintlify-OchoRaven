@@ -1,0 +1,132 @@
+---
+title: "Python Advanced"
+description: "Engineer maintainable Python security tooling with concurrency, packaging, observability, and CI testing."
+icon: "rocket"
+---
+
+# Advanced — Engineering Security Tools
+
+**Goal:** Build security tooling that is maintainable, testable, observable, and suitable for team use.
+
+## Concepts to learn
+
+- Advanced typing and interfaces
+- Dataclasses and data models
+- Iterators, generators, decorators, and context managers
+- `asyncio` and controlled concurrency
+- Queues and producer/consumer patterns
+- Performance profiling
+- Structured logging
+- Secure configuration and secrets handling
+- Packaging with `pyproject.toml`
+- Automated linting, formatting, and testing
+- CI/CD fundamentals
+- Containerization
+- API service design
+- Data validation
+- Retry/backoff strategies
+- Metrics and operational health
+
+## Project 1 — Concurrent Enrichment Pipeline
+
+**Intent:** Scale the intermediate IOC client while learning controlled concurrency and operational safeguards.
+
+**Capability:** Process a queue of indicators against multiple authorized enrichment sources without overwhelming services.
+
+### Requirements
+
+- asynchronous or bounded concurrent workers;
+- per-provider rate limiting;
+- retry with exponential backoff;
+- request timeouts;
+- caching;
+- structured logs;
+- deterministic normalized output;
+- unit and integration tests;
+- summary metrics for successes, failures, cache hits, and processing time.
+
+<Info>
+Faster is not automatically better. A mature enrichment tool protects upstream services and produces predictable results under failure conditions.
+</Info>
+
+## Project 2 — Detection-as-Code Validator
+
+**Intent:** Treat detection content as version-controlled software artifacts.
+
+**Capability:** Validate a repository of detection rules before changes are merged.
+
+Possible validation stages:
+
+1. Parse rule files.
+2. Validate required metadata.
+3. Check naming conventions and identifiers.
+4. Validate ATT&CK technique references where used.
+5. Execute tests against positive and negative event fixtures.
+6. Identify duplicate or conflicting rule IDs.
+7. Produce human-readable and CI-friendly reports.
+8. Exit non-zero when required quality gates fail.
+
+**Stretch goal:** Add GitHub Actions so pull requests automatically execute validation.
+
+## Project 3 — Telemetry Pipeline Health Monitor
+
+**Intent:** Detection engineering depends on reliable data. Learn to measure whether expected telemetry is arriving and usable.
+
+**Capability:** Query authorized telemetry sources and identify potential collection problems.
+
+Monitor items such as:
+
+- expected data sources;
+- last event timestamp;
+- event volume relative to a configured baseline;
+- missing critical fields;
+- parsing failures;
+- unexpected schema changes;
+- duplicate events.
+
+Output a health report with `healthy`, `warning`, and `critical` states based on explicit configuration rather than hidden assumptions.
+
+## Project 4 — Security Automation Service
+
+**Intent:** Convert a local script into a small team-consumable service.
+
+**Capability:** Expose one of your earlier tools through a documented API using a framework such as FastAPI.
+
+Required engineering features:
+
+- validated request/response models;
+- authentication appropriate for the lab environment;
+- health endpoint;
+- structured logs;
+- request IDs;
+- safe error messages;
+- tests;
+- Dockerfile;
+- configuration through environment variables;
+- API documentation.
+
+## Advanced checkpoint
+
+A completed advanced project should be understandable and usable by someone who did not write it. Your repository should contain:
+
+```text
+project/
+├── README.md
+├── pyproject.toml
+├── src/
+├── tests/
+├── examples/
+├── .gitignore
+└── Dockerfile        # when applicable
+```
+
+You should be able to explain architectural decisions, failure modes, security considerations, test strategy, and operational limitations.
+
+## Resources
+
+- [Python asyncio](https://docs.python.org/3/library/asyncio.html)
+- [Python Packaging User Guide](https://packaging.python.org/)
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [pytest](https://docs.pytest.org/)
+- [Docker documentation](https://docs.docker.com/)
+- [GitHub Actions documentation](https://docs.github.com/actions)

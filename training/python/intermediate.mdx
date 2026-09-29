@@ -1,0 +1,134 @@
+---
+title: "Python Intermediate"
+description: "Develop reusable security automation using APIs, structured telemetry, testing, and modular design."
+icon: "code"
+---
+
+# Intermediate — Security Automation
+
+**Goal:** Move from individual scripts to reusable analyst tools that interact with APIs and larger datasets.
+
+## Concepts to learn
+
+- Classes and practical object-oriented design
+- Modules and packages
+- Type hints
+- Comprehensions and generators
+- Regular expressions
+- `argparse`
+- HTTP and REST APIs
+- Authentication and environment variables
+- JSON/JSONL/CSV processing
+- Dates and timestamps
+- Logging
+- Configuration files
+- Unit testing with `pytest`
+- Mocking API responses
+- Dependency management
+- Git workflows and documentation
+
+## Project 1 — IOC Enrichment Client
+
+**Intent:** Learn safe API integration by enriching indicators with one or more threat-intelligence services available to your lab or organization.
+
+**Capability:** Read normalized IOCs, query an authorized enrichment API, cache results, and generate an analyst-friendly report.
+
+### Walkthrough
+
+<Steps>
+  <Step title="Define an enrichment interface">
+    Create a function or class that accepts an indicator and returns a normalized Python dictionary.
+  </Step>
+  <Step title="Protect credentials">
+    Load API keys from environment variables. Never commit credentials to Git.
+  </Step>
+  <Step title="Handle HTTP failures">
+    Account for timeouts, authentication failures, rate limiting, malformed responses, and unavailable services.
+  </Step>
+  <Step title="Normalize results">
+    Convert provider-specific responses into fields such as `indicator`, `type`, `classification`, `tags`, `source`, and `retrieved_at`.
+  </Step>
+  <Step title="Cache results">
+    Avoid unnecessary repeat queries by storing recently retrieved results locally.
+  </Step>
+  <Step title="Test the client">
+    Mock API responses so tests do not consume API quotas or require network connectivity.
+  </Step>
+</Steps>
+
+## Project 2 — Security Telemetry Query Client
+
+**Intent:** Learn how Python can support repeatable hunting and investigation workflows.
+
+**Capability:** Query an authorized Elasticsearch/OpenSearch-compatible lab endpoint, save results, and generate a summary.
+
+Suggested functions:
+
+```python
+def run_query(query: dict) -> list[dict]:
+    ...
+
+def summarize_events(events: list[dict]) -> dict:
+    ...
+
+def export_json(events: list[dict], output_path: str) -> None:
+    ...
+```
+
+Add configuration for endpoint, index/data source, TLS verification, timeout, and result limit. Never hard-code credentials.
+
+## Project 3 — Detection Test Harness
+
+**Intent:** Introduce detection engineering as software engineering: detection logic should be repeatable and testable.
+
+**Capability:** Load representative events and determine whether expected detections match expected positive and negative samples.
+
+Create a dataset structure such as:
+
+```text
+tests/data/
+  positive/
+  negative/
+```
+
+For every test case, record:
+
+- test name;
+- expected result;
+- actual result;
+- matched fields;
+- pass/fail status.
+
+**Stretch goal:** Generate JUnit-compatible output for CI pipelines.
+
+## Project 4 — Analyst Case Packager
+
+**Intent:** Automate repetitive evidence organization without changing the source evidence.
+
+**Capability:** Given a folder of exported events, notes, and indicators, generate a standardized investigation package containing hashes, metadata, normalized indicators, a timeline, and summary files.
+
+<Warning>
+Preserve original evidence files. Process copies or read source files without modifying them, and clearly distinguish generated artifacts from source evidence.
+</Warning>
+
+## Intermediate checkpoint
+
+You are ready for Advanced when you can independently build a tool that:
+
+- consumes a documented API;
+- separates configuration from code;
+- has useful logging and exception handling;
+- uses functions/modules with clear responsibilities;
+- contains automated tests;
+- produces predictable structured output; and
+- can be used by another analyst by following its README.
+
+## Resources
+
+- [Requests](https://requests.readthedocs.io/)
+- [pytest](https://docs.pytest.org/)
+- [Python logging](https://docs.python.org/3/library/logging.html)
+- [Python typing](https://docs.python.org/3/library/typing.html)
+- [Python argparse](https://docs.python.org/3/library/argparse.html)
+- [Elasticsearch Python client](https://www.elastic.co/docs/reference/elasticsearch/clients/python)
+- [OpenSearch Python client](https://docs.opensearch.org/latest/clients/python-low-level/)
