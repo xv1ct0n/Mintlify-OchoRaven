@@ -102,7 +102,8 @@
             "pages": [
               "training/network-forensics/index",
               "training/network-forensics/wireshark",
-              "training/network-forensics/dns-investigation"
+              "training/network-forensics/dns-investigation",
+              "training/network-forensics/web-traffic"
             ]
           },
           {
