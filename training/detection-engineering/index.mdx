@@ -12,7 +12,7 @@ Detection engineering turns an observable behavior into a testable analytic. A s
 <Info>
 **Audience:** Senior analysts who already understand common network and endpoint telemetry, incident investigation, and basic SIEM workflows.
 
-**Outcome:** You will be able to read, write, test, tune, and interpret detections in **ES|QL, KQL, Suricata, and YARA**, then explain how the same detection hypothesis changes across packet, indexed-event, and file-scanning engines.
+**Outcome:** You will be able to read, write, test, tune, and interpret detections in **ES|QL, Kibana Query Language (KQL), Suricata, and YARA**, then explain how the same detection hypothesis changes across indexed-event, packet, and file-scanning engines.
 </Info>
 
 ## Prerequisites
@@ -21,10 +21,11 @@ You should be comfortable with:
 
 - TCP/IP, DNS, HTTP, and TLS;
 - Security Onion or another NSM platform;
-- Elasticsearch/Kibana concepts such as indices, fields, and time ranges;
 - Suricata or Snort alerts;
 - packet analysis in Wireshark or Arkime;
 - basic Linux command-line use.
+
+A running Elasticsearch/Kibana environment is **not required for the entire course**. It is required only for the **Elastic / Kibana Query Detections** section containing ES|QL and KQL.
 
 If you need packet-analysis reinforcement first, complete the [Network Forensics course](/training/network-forensics/index).
 
@@ -52,17 +53,30 @@ Deployment + monitoring
 Periodic review
 ```
 
-## Course progression
+## Course structure
+
+### Core detection engineering
 
 | Lesson | Detection mechanism | Primary skill |
 | --- | --- | --- |
 | 1 | Foundations | Convert a behavioral hypothesis into explicit data and test requirements. |
-| 2 | ES|QL | Build pipeline-based analytics with filtering, transformation, aggregation, and alert-oriented output. |
-| 3 | KQL | Build precise event filters and understand where filtering stops and aggregation must move elsewhere. |
 | 4 | Suricata | Write packet/application-layer signatures, select buffers, validate flow direction, and test against PCAP. |
 | 5 | YARA | Write file/content signatures, combine strings and conditions, and test against artifacts extracted from PCAP. |
 | 6 | Validation & tuning | Build positive/negative tests, document false positives, and compare engines without conflating syntax. |
 | 7 | Capstone | Translate one detection hypothesis across multiple engines and produce a deployment-ready package. |
+
+### Elastic / Kibana Query Detections
+
+These lessons are intentionally separated because they require a functioning **Elasticsearch + Kibana** environment with suitable indexed telemetry and mappings.
+
+| Lesson | Query language | Primary skill |
+| --- | --- | --- |
+| 2 | ES|QL | Build pipeline-based analytics with filtering, transformation, aggregation, and alert-oriented output. |
+| 3 | KQL | Build precise Kibana field/value filters and understand where filtering stops and aggregation must move elsewhere. |
+
+<Warning>
+KQL in this course means **Kibana Query Language**, not Microsoft Kusto Query Language. ES|QL and Kibana KQL are Elastic-specific workflows and are not drop-in query languages for OpenSearch Dashboards.
+</Warning>
 
 ## Lab data strategy
 
@@ -76,8 +90,8 @@ The documentation editor can publish MDX and navigation but does not expose a bi
 
 | Technology | Operates on | Best fit | Important limitation |
 | --- | --- | --- | --- |
-| ES|QL | Indexed Elasticsearch data | Aggregation, transformation, statistical thresholds | Field availability depends on ingestion/mappings. |
-| KQL | Indexed Elasticsearch data in Kibana | Fast field/value filtering | KQL filters; it does not aggregate, transform, or sort. |
+| ES|QL | Indexed Elasticsearch data | Aggregation, transformation, statistical thresholds | Requires a compatible Elasticsearch/Kibana deployment and correct field mappings. |
+| KQL | Indexed Elasticsearch data in Kibana | Fast field/value filtering | Requires Kibana; KQL filters but does not aggregate, transform, or sort. |
 | Suricata | Packets and reassembled application traffic | Network signatures and protocol-aware matching | Visibility depends on traffic, encryption, stream depth, and parser support. |
 | YARA | Files, byte buffers, or process memory | Artifact/content signatures | YARA is not a network query language; PCAP content must first become a file/buffer to scan. |
 
