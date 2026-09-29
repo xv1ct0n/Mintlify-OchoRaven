@@ -1,0 +1,109 @@
+---
+title: "Network Forensics"
+description: "A progressive packet-analysis course from Wireshark foundations through DNS, web traffic, beaconing, artifact analysis, Security Onion correlation, and a capstone investigation."
+icon: "network-wired"
+---
+
+# Network Forensics learning path
+
+Network forensics turns packet captures and network telemetry into evidence you can use to answer investigative questions. This course starts with Wireshark fundamentals and progressively moves into protocol analysis, behavioral investigation, artifact handling, and correlation across defensive tooling.
+
+<Info>
+**Audience:** Beginner through advanced cybersecurity practitioners. Beginners should understand basic IPv4 addressing and the purpose of TCP, UDP, and DNS. More experienced analysts can move quickly through the foundations and focus on the advanced exercises.
+
+**Outcome:** Complete the path and you should be able to scope a PCAP investigation, reconstruct network conversations, investigate DNS and web activity, identify periodic or suspicious communication patterns, extract artifacts safely, correlate packet evidence with Security Onion/Arkime/Suricata telemetry, and produce a defensible investigation report.
+</Info>
+
+## Course progression
+
+<Steps>
+  <Step title="Lab 1 — Packet Analysis Foundations">
+    Learn the Wireshark interface, packet anatomy, capture scope, endpoints, conversations, capture versus display filters, and a repeatable triage workflow.
+  </Step>
+  <Step title="Lab 2 — DNS Investigation">
+    Reconstruct DNS activity, distinguish queries from responses, analyze record types and failures, and pivot from names to subsequent network connections.
+  </Step>
+  <Step title="Lab 3 — HTTP, TLS, and Web Traffic">
+    Analyze HTTP transactions and encrypted web metadata, reconstruct streams, inspect TLS handshakes, and understand what encryption does and does not hide.
+  </Step>
+  <Step title="Lab 4 — Beaconing and C2-Like Patterns">
+    Use benign synthetic traffic to investigate periodic connections, timing, destination consistency, and packet-size patterns without treating periodicity alone as proof of compromise.
+  </Step>
+  <Step title="Lab 5 — File and Artifact Analysis">
+    Identify network-delivered objects, export authorized training artifacts, calculate hashes, document provenance, and connect packet evidence to YARA and IOC workflows.
+  </Step>
+  <Step title="Lab 6 — Security Onion and Arkime Correlation">
+    Start from alerts or indexed session telemetry, narrow the time/host/session scope, retrieve relevant PCAP, and validate conclusions at packet level.
+  </Step>
+  <Step title="Lab 7 — Capstone Investigation">
+    Conduct an end-to-end investigation with minimal guidance and produce a concise evidence-based report separating observations, interpretations, and limitations.
+  </Step>
+</Steps>
+
+## Labs
+
+<CardGroup cols={2}>
+  <Card title="1. Packet Analysis Foundations" icon="magnifying-glass" href="/training/network-forensics/wireshark">
+    Learn the core Wireshark workflow and packet-analysis fundamentals.
+  </Card>
+  <Card title="2. DNS Investigation" icon="globe" href="/training/network-forensics/dns-investigation">
+    Analyze DNS queries, responses, failures, and pivots to network activity.
+  </Card>
+  <Card title="3. HTTP, TLS, and Web Traffic" icon="lock" href="/training/network-forensics/web-traffic">
+    Reconstruct HTTP and interpret TLS metadata and encrypted sessions.
+  </Card>
+  <Card title="4. Beaconing Analysis" icon="tower-broadcast" href="/training/network-forensics/beaconing-analysis">
+    Investigate periodic communications and build evidence for or against a beaconing hypothesis.
+  </Card>
+  <Card title="5. File and Artifact Analysis" icon="file-shield" href="/training/network-forensics/artifact-analysis">
+    Extract, hash, and document authorized network-delivered artifacts safely.
+  </Card>
+  <Card title="6. Security Onion + Arkime" icon="shield" href="/training/network-forensics/security-onion-arkime">
+    Correlate alerts, session metadata, and full packet capture.
+  </Card>
+  <Card title="7. Capstone Investigation" icon="clipboard-check" href="/training/network-forensics/capstone">
+    Complete an end-to-end packet investigation and produce an analyst report.
+  </Card>
+</CardGroup>
+
+## Tool and language boundaries
+
+| Tool | Primary role in this path | Query/filter language |
+| --- | --- | --- |
+| Wireshark | Interactive packet dissection | Wireshark display filters |
+| TShark | Repeatable CLI packet analysis | Wireshark display filters with `-Y` |
+| Arkime | Indexed session search + PCAP | Arkime search expressions |
+| Suricata | IDS/IPS + protocol/event telemetry | Suricata rule syntax; EVE JSON output |
+| Security Onion | Integrated alert/hunt/session/PCAP workflow | Interface depends on data and deployed version |
+| Elasticsearch/Kibana | Indexed event search and correlation | KQL, Lucene, ES|QL, or APIs depending on workflow/version |
+| OpenSearch | Indexed event search and analytics | OpenSearch query mechanisms/PPL depending on deployment |
+| YARA | File/content classification | YARA rules |
+
+<Warning>
+Do not copy a query literally between platforms. Translate the investigative question and identify the fields available in each data source.
+</Warning>
+
+## Lab data
+
+Use captures you are authorized to analyze. Security Onion's official PCAP testing documentation lists multiple public training datasets, including Wireshark SampleCaptures, Digital Corpora, Zeek test traces, Stratosphere IPS datasets, and other packet-analysis collections.
+
+<CardGroup cols={2}>
+  <Card title="Security Onion PCAP Testing" icon="database" href="https://docs.securityonion.net/en/3/main/pcaps/">
+    Maintained list of PCAP sources plus Security Onion import/replay guidance.
+  </Card>
+  <Card title="Wireshark User's Guide" icon="book" href="https://www.wireshark.org/docs/wsug_html/">
+    Official packet-analysis, filtering, statistics, stream-following, and object-export documentation.
+  </Card>
+</CardGroup>
+
+## Completion standard
+
+You are ready to move beyond this path when you can receive an IP, hostname, timestamp, IDS alert, or suspicious session and independently determine:
+
+1. what traffic is actually present;
+2. which conversations are relevant;
+3. what the packet evidence directly establishes;
+4. what conclusions require additional telemetry;
+5. which artifacts and pivots should be preserved;
+6. how to reproduce your analysis with filters or TShark; and
+7. how to communicate findings without overstating the evidence.
