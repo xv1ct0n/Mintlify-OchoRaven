@@ -1,0 +1,173 @@
+---
+title: "Lab 3: HTTP, TLS, and Web Traffic"
+description: "Reconstruct HTTP transactions and interpret TLS metadata while learning what encryption does and does not expose."
+icon: "lock"
+---
+
+# Lab 3 — HTTP, TLS, and Web Traffic
+
+Web investigations require two different mental models: plaintext HTTP may expose requests, headers, responses, and transferred objects, while TLS usually limits you to connection and handshake metadata unless authorized decryption material is available.
+
+<Info>
+**Prerequisite:** Complete Labs 1–2 or understand TCP streams and DNS pivots.
+
+**Outcome:** Reconstruct an HTTP transaction, inspect TLS sessions, identify useful metadata, distinguish plaintext evidence from encrypted content, and document the limits of your visibility.
+</Info>
+
+## Part 1 — Plaintext HTTP
+
+Use a benign training PCAP containing HTTP.
+
+Filter:
+
+```text
+http
+```
+
+Requests:
+
+```text
+http.request
+```
+
+Select a request and inspect fields such as method, host, URI, and user agent when present.
+
+### Reconstruct the conversation
+
+Right-click a TCP/HTTP packet and use **Follow → TCP Stream** or an applicable protocol stream. Wireshark's current User's Guide documents stream following for TCP, TLS, HTTP, HTTP/2, QUIC, and other supported protocols.
+
+Record:
+
+```text
+Client:
+Server:
+Method:
+Host:
+URI:
+User-Agent:
+Response code:
+Content type:
+```
+
+### Evidence interpretation
+
+A request establishes that the captured client sent those request bytes. A successful status code indicates the server response reported that status. Neither alone establishes what a user intentionally did or whether returned content executed.
+
+## Part 2 — Export a benign HTTP object
+
+For an authorized training capture, use **File → Export Objects → HTTP**. Wireshark documents Export Objects as a mechanism for saving reassembled objects recognized by supported protocol dissectors.
+
+Hash the saved object:
+
+```bash
+sha256sum exported-object.bin
+```
+
+PowerShell:
+
+```powershell
+Get-FileHash .\exported-object.bin -Algorithm SHA256
+```
+
+Do not execute unknown extracted files.
+
+## Part 3 — TLS
+
+Filter:
+
+```text
+tls
+```
+
+Then combine with a host of interest:
+
+```text
+ip.addr == 192.0.2.25 && tls
+```
+
+Inspect the TLS handshake fields available in your capture and Wireshark version. Depending on protocol version and capture conditions, useful observations may include endpoints, timing, TLS version, cipher negotiation, certificate information, and some handshake metadata.
+
+<Warning>
+Do not assume a hostname will always be visible in modern encrypted traffic. TLS versions, encrypted handshake features, protocol behavior, and capture conditions affect what metadata is observable.
+</Warning>
+
+## Part 4 — Build a web timeline
+
+Combine DNS, TCP, and TLS/HTTP observations:
+
+```text
+DNS query
+   ↓
+DNS response
+   ↓
+TCP connection
+   ↓
+TLS handshake or HTTP request
+   ↓
+application exchange
+```
+
+Document packet numbers and timestamps for each step that is actually present.
+
+## Part 5 — TShark
+
+HTTP requests:
+
+```bash
+tshark -r lab.pcapng \
+  -Y "http.request" \
+  -T fields \
+  -e frame.time_epoch \
+  -e ip.src \
+  -e ip.dst \
+  -e http.request.method \
+  -e http.host \
+  -e http.request.uri
+```
+
+Follow a TCP stream from the CLI:
+
+```bash
+tshark -r lab.pcapng -z "follow,tcp,ascii,0"
+```
+
+The TShark manual documents `-Y` for display filters and `-z follow,...` for supported stream reconstruction.
+
+## Troubleshooting
+
+| Symptom | Explanation/check |
+| --- | --- |
+| `http` returns nothing | Traffic may be TLS-encrypted, use another protocol, or be outside capture scope. |
+| Follow Stream is unavailable | Select a packet belonging to a protocol/stream Wireshark recognizes. |
+| HTTP object export is empty | Capture may not contain a supported reassembled object or required packets may be missing. |
+| TLS content is unreadable | Expected without suitable authorized decryption material. Analyze metadata instead. |
+
+## Advanced extension — authorized TLS decryption
+
+Wireshark supports TLS decryption when appropriate keying material is available. Treat this as optional because feasibility depends on protocol, endpoint control, key material, and organizational authorization. Follow the official Wireshark TLS guidance for the exact version and lab setup rather than using unverified key-extraction procedures.
+
+## Validation
+
+Produce one evidence table:
+
+| Time | Packet | Observation | Interpretation | Confidence/limitation |
+| --- | ---: | --- | --- | --- |
+| ... | ... | DNS response returned an address | Name resolution succeeded | Does not prove connection |
+| ... | ... | TCP SYN sent to returned IP | Connection attempted | Response required to establish success |
+| ... | ... | TLS handshake observed | Encrypted session negotiation occurred | Application plaintext unavailable |
+
+## References
+
+<CardGroup cols={2}>
+  <Card title="Wireshark User's Guide" icon="book" href="https://www.wireshark.org/docs/wsug_html/">
+    Official stream-following and object-export documentation.
+  </Card>
+  <Card title="TShark Manual" icon="terminal" href="https://www.wireshark.org/docs/man-pages/tshark">
+    Official CLI reference for filters, field extraction, and stream following.
+  </Card>
+</CardGroup>
+
+<CardGroup cols={2}>
+  <Card title="Previous: DNS Investigation" icon="arrow-left" href="/training/network-forensics/dns-investigation" />
+  <Card title="Next: Beaconing Analysis" icon="arrow-right" href="/training/network-forensics/beaconing-analysis" />
+</CardGroup>
