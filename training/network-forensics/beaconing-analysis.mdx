@@ -1,0 +1,185 @@
+---
+title: "Lab 4: Beaconing Analysis"
+description: "Investigate periodic network communication using packet timing, destinations, and session characteristics in an authorized lab."
+icon: "tower-broadcast"
+---
+
+# Lab 4 — Beaconing Analysis
+
+A beacon is a recurring communication pattern in which a host contacts another system at intervals. Some command-and-control frameworks beacon, but so do software updates, monitoring agents, cloud clients, telemetry services, and many other legitimate applications.
+
+This lab teaches you to test a **beaconing hypothesis** without equating periodicity with maliciousness.
+
+<Info>
+**Prerequisite:** Comfortable filtering by host, TCP/UDP, and stream/session.
+
+**Outcome:** Identify repeated communications, calculate approximate intervals, examine variability and session characteristics, and state what additional evidence would be needed to distinguish benign automation from suspicious command-and-control-like behavior.
+</Info>
+
+## Safe lab model
+
+Use only benign synthetic or approved training traffic. One simple option is to generate repeated requests from your own lab host to a service you control or a benign destination approved for training, then capture the traffic.
+
+Do not use this lab to deploy malware or establish unauthorized command-and-control infrastructure.
+
+## Step 1 — Start with conversations
+
+Use **Statistics → Conversations** and sort by packets, bytes, or duration. Look for repeated host pairs worth investigating.
+
+Then isolate a pair:
+
+```text
+ip.addr == 192.0.2.25 && ip.addr == 198.51.100.10
+```
+
+## Step 2 — Identify connection starts
+
+For TCP connection attempts from a host:
+
+```text
+ip.src == 192.0.2.25 && tcp.flags.syn == 1 && tcp.flags.ack == 0
+```
+
+If one destination is of interest:
+
+```text
+ip.src == 192.0.2.25 && ip.dst == 198.51.100.10 && tcp.flags.syn == 1 && tcp.flags.ack == 0
+```
+
+Record timestamps for several events.
+
+## Step 3 — Calculate intervals
+
+Example:
+
+```text
+10:00:00
+10:01:00
+10:02:01
+10:03:00
+```
+
+Approximate intervals:
+
+```text
+60 s
+61 s
+59 s
+```
+
+A stable interval is evidence of periodicity, not evidence of malicious intent.
+
+## Step 4 — Inspect more than timing
+
+For the repeated sessions, compare:
+
+- destination IP and port;
+- DNS name, if available;
+- protocol;
+- packets per session;
+- bytes transferred;
+- connection success/failure;
+- session duration;
+- request/response characteristics;
+- whether timing contains variability or jitter.
+
+Ask whether the pattern resembles an expected automated service in the environment.
+
+## Step 5 — Use TShark for timestamps
+
+```bash
+tshark -r lab.pcapng \
+  -Y "ip.src == 192.0.2.25 && tcp.flags.syn == 1 && tcp.flags.ack == 0" \
+  -T fields \
+  -e frame.time_epoch \
+  -e ip.dst \
+  -e tcp.dstport
+```
+
+Export the result and calculate deltas manually, with a spreadsheet, or with a small authorized analysis script.
+
+## Step 6 — Form competing hypotheses
+
+Do not begin with "this is C2." Consider alternatives:
+
+```text
+H1: scheduled benign application traffic
+H2: monitoring/health-check traffic
+H3: update or synchronization traffic
+H4: user-driven repeated activity
+H5: suspicious automated callback
+```
+
+Then list evidence that would increase or decrease confidence in each hypothesis.
+
+## Step 7 — Correlate other telemetry
+
+Useful pivots may include:
+
+- Arkime session frequency and bytes;
+- Suricata alerts and flow records;
+- DNS history;
+- endpoint process/network telemetry;
+- proxy logs;
+- authentication context;
+- threat intelligence for the destination;
+- known application ownership.
+
+<Warning>
+Threat-intelligence reputation is context, not proof. Shared hosting, CDNs, address reassignment, stale reporting, and false positives can all affect reputation data.
+</Warning>
+
+## Detection-engineering bridge
+
+A production beacon analytic typically needs explicit choices for:
+
+```text
+grouping key
+observation window
+minimum event count
+interval tolerance
+jitter handling
+minimum/maximum bytes
+protocol scope
+known-benign suppression
+```
+
+Packet analysis helps you understand which of these features are actually observable before you encode them into a SIEM or detection system.
+
+## Troubleshooting
+
+| Problem | Check |
+| --- | --- |
+| Too many SYNs | Narrow by destination, port, time range, or host pair. |
+| Connections reuse one long TCP session | Analyze application messages or packet timing inside the stream instead of SYNs. |
+| UDP has no handshake | Define an event appropriate to the protocol, such as client datagrams to a destination. |
+| Pattern disappears in larger data | Your original sample may have been too short; document the observation window. |
+
+## Validation
+
+Produce a small table with at least five events:
+
+| Event | Time | Destination | Port | Delta from previous | Notes |
+| ---: | --- | --- | ---: | ---: | --- |
+| 1 | ... | ... | ... | — | ... |
+| 2 | ... | ... | ... | ... | ... |
+
+Conclude with:
+
+```text
+Observed pattern:
+Evidence supporting periodicity:
+Benign explanations:
+Suspicious explanations:
+Additional telemetry required:
+Confidence:
+```
+
+## Advanced extension
+
+Write a small Python or spreadsheet analysis that calculates mean interval, median interval, standard deviation, and coefficient of variation for an exported timestamp series. Use the statistics to describe timing consistency, not to automatically classify the traffic.
+
+<CardGroup cols={2}>
+  <Card title="Previous: Web Traffic" icon="arrow-left" href="/training/network-forensics/web-traffic" />
+  <Card title="Next: Artifact Analysis" icon="arrow-right" href="/training/network-forensics/artifact-analysis" />
+</CardGroup>
