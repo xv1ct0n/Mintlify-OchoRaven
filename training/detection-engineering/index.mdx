@@ -69,10 +69,10 @@ Periodic review
 
 These lessons are intentionally separated because they require a functioning **Elasticsearch + Kibana** environment with suitable indexed telemetry and mappings.
 
-| Lesson | Query language | Primary skill |
-| --- | --- | --- |
-| 2 | ES|QL | Build pipeline-based analytics with filtering, transformation, aggregation, and alert-oriented output. |
-| 3 | KQL | Build precise Kibana field/value filters and understand where filtering stops and aggregation must move elsewhere. |
+| Lesson | Query language | Primary skill |  |
+| --- | --- | --- | --- |
+| 2 | ES | QL | Build pipeline-based analytics with filtering, transformation, aggregation, and alert-oriented output. |
+| 3 | KQL | Build precise Kibana field/value filters and understand where filtering stops and aggregation must move elsewhere. |  |
 
 <Warning>
 KQL in this course means **Kibana Query Language**, not Microsoft Kusto Query Language. ES|QL and Kibana KQL are Elastic-specific workflows and are not drop-in query languages for OpenSearch Dashboards.
@@ -88,12 +88,12 @@ The documentation editor can publish MDX and navigation but does not expose a bi
 
 ## Know the engine before writing the rule
 
-| Technology | Operates on | Best fit | Important limitation |
-| --- | --- | --- | --- |
-| ES|QL | Indexed Elasticsearch data | Aggregation, transformation, statistical thresholds | Requires a compatible Elasticsearch/Kibana deployment and correct field mappings. |
-| KQL | Indexed Elasticsearch data in Kibana | Fast field/value filtering | Requires Kibana; KQL filters but does not aggregate, transform, or sort. |
-| Suricata | Packets and reassembled application traffic | Network signatures and protocol-aware matching | Visibility depends on traffic, encryption, stream depth, and parser support. |
-| YARA | Files, byte buffers, or process memory | Artifact/content signatures | YARA is not a network query language; PCAP content must first become a file/buffer to scan. |
+| Technology | Operates on | Best fit | Important limitation |  |
+| --- | --- | --- | --- | --- |
+| ES | QL | Indexed Elasticsearch data | Aggregation, transformation, statistical thresholds | Requires a compatible Elasticsearch/Kibana deployment and correct field mappings. |
+| KQL | Indexed Elasticsearch data in Kibana | Fast field/value filtering | Requires Kibana; KQL filters but does not aggregate, transform, or sort. |  |
+| Suricata | Packets and reassembled application traffic | Network signatures and protocol-aware matching | Visibility depends on traffic, encryption, stream depth, and parser support. |  |
+| YARA | Files, byte buffers, or process memory | Artifact/content signatures | YARA is not a network query language; PCAP content must first become a file/buffer to scan. |  |
 
 <Info>
 OpenSearch does **not** provide ES|QL or Kibana KQL as drop-in equivalents. OpenSearch environments commonly use Query DSL, Dashboards Query Language, PPL, or SQL depending on version and configuration. Translate the detection hypothesis, not the literal query string.
