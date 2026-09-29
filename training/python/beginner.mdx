@@ -37,21 +37,11 @@ Follow the complete lesson-by-lesson walkthrough. You will learn each Python con
 ### Build requirements
 
 <Steps>
-  <Step title="Read the input">
-    Accept an input filename from the command line and read one candidate indicator per line.
-  </Step>
-  <Step title="Normalize values">
-    Strip whitespace, ignore blank lines, and normalize values where doing so will not destroy evidence.
-  </Step>
-  <Step title="Classify indicators">
-    Use `ipaddress`, string operations, and simple validation logic to classify IPv4 addresses, domains, URLs, and common hash lengths.
-  </Step>
-  <Step title="Deduplicate">
-    Use sets or dictionary keys to eliminate duplicate indicators.
-  </Step>
-  <Step title="Export results">
-    Produce JSON or CSV output containing `value`, `type`, and `source` fields.
-  </Step>
+  <Step title="Read the input">Accept an input filename from the command line and read one candidate indicator per line.</Step>
+  <Step title="Normalize values">Strip whitespace, ignore blank lines, and normalize values where doing so will not destroy evidence.</Step>
+  <Step title="Classify indicators">Use `ipaddress`, string operations, and simple validation logic to classify IPv4 addresses, domains, URLs, and common hash lengths.</Step>
+  <Step title="Deduplicate">Use sets or dictionary keys to eliminate duplicate indicators.</Step>
+  <Step title="Export results">Produce JSON or CSV output containing `value`, `type`, and `source` fields.</Step>
 </Steps>
 
 **Success criteria:** Invalid values do not crash the program; duplicates disappear; output is machine-readable; and the README explains normalization decisions.
@@ -83,30 +73,58 @@ Build a functional authentication-analysis utility through a progressive walkthr
 
 ## Project 3 — File Hash Inventory
 
-**Intent:** Introduce filesystem automation and cryptographic hashing.
+**Intent:** Learn filesystem automation, binary file handling, cryptographic hashing, resilient batch processing, and artifact inventory techniques used in defensive operations.
 
-**Capability:** Recursively inventory a lab directory and calculate SHA-256 hashes for files.
+**Capability:** Recursively inventory an authorized directory, calculate SHA-256 hashes using streaming reads, collect file metadata, identify duplicate content, preserve per-file errors, and export CSV and JSON reports.
 
-### Required output
+<Card title="Start Project 3: File Hash Inventory" icon="fingerprint" href="/training/python/projects/file-hash-inventory">
+Build the final beginner project through a comprehensive walkthrough covering recursive filesystem traversal, binary I/O, chunked SHA-256 hashing, metadata, CSV/JSON reporting, duplicate identification, and integrity-baseline concepts.
+</Card>
 
-```text
-path,size_bytes,sha256
-samples/example.exe,20480,<hash>
-```
+### Core objectives
 
-Add graceful handling for inaccessible files and record errors separately rather than terminating the scan.
+1. Validate a target directory supplied through the CLI.
+2. Recursively discover files with `pathlib`.
+3. Understand binary versus text file I/O.
+4. Calculate SHA-256 without loading entire files into memory.
+5. Record relative path and file-size metadata.
+6. Continue processing when individual files fail.
+7. Identify files with identical content using their hashes.
+8. Produce deterministic output.
+9. Export CSV and JSON artifacts.
+10. Explain what a hash can and cannot establish during analysis.
+
+**Independent challenge:** Compare the current inventory against a previous baseline and classify files as unchanged, modified, new, or removed.
 
 ## Beginner checkpoint
 
 Before progressing, you should be able to create a script without a tutorial that:
 
-- reads a file;
-- validates and transforms its data;
+- reads files and structured data;
+- validates and transforms input;
+- recursively works with filesystem paths;
+- processes binary data safely;
 - uses functions to separate responsibilities;
-- handles expected errors;
-- stores information in lists/dictionaries/sets;
-- writes structured output; and
-- accepts basic command-line input.
+- handles recoverable errors without unnecessarily terminating a batch;
+- stores and aggregates information with lists, dictionaries, sets, and standard-library collections;
+- writes structured JSON and CSV output;
+- accepts command-line configuration; and
+- explains the assumptions and limitations of a simple defensive analytic.
+
+## Beginner project progression
+
+```text
+Project 1: IOC Normalizer
+Normalize defensive data
+          ↓
+Project 2: Authentication Log Summarizer
+Analyze event behavior
+          ↓
+Project 3: File Hash Inventory
+Inventory endpoint artifacts
+          ↓
+Ready for Intermediate Python
+```
 
 ## Resources
 
