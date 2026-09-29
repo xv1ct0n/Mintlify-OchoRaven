@@ -9,6 +9,10 @@ icon: "filter"
 
 Kibana Query Language (KQL) is a **filtering language**. It is excellent for finding documents that match field/value conditions, but it does not perform aggregation, transformation, or sorting by itself.
 
+<Info>
+  In this course, **KQL means Kibana Query Language**. It does not mean Microsoft's Kusto Query Language, which is a different language used by services such as Microsoft Sentinel and Azure Data Explorer.
+</Info>
+
 That limitation is important for detection design: use KQL when the behavior can be represented as a document-level match. Use ES|QL, EQL, transforms, or another mechanism when the analytic requires aggregation or event sequencing.
 
 ## Learning objectives
