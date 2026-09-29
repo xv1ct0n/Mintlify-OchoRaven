@@ -1,0 +1,169 @@
+---
+title: "Lab 5: File and Artifact Analysis"
+description: "Safely identify, export, hash, and document artifacts recovered from authorized packet captures."
+icon: "file-shield"
+---
+
+# Lab 5 — File and Artifact Analysis
+
+Network traffic can contain transferred files, scripts, documents, images, archives, configuration data, and other artifacts. This lab focuses on preserving the relationship between a network event and an extracted object while avoiding unsafe execution.
+
+<Info>
+**Prerequisite:** Complete the HTTP/TLS lab and understand stream reconstruction.
+
+**Outcome:** Identify an object transfer in an authorized PCAP, export a benign training artifact, calculate a cryptographic hash, record network provenance, and prepare the artifact for later IOC/YARA analysis without overstating what the hash establishes.
+</Info>
+
+## Evidence model
+
+Treat an artifact as more than a file:
+
+```text
+Network context
+  source/destination
+  time
+  protocol
+  request/response
+       ↓
+Transferred object
+       ↓
+Local exported copy
+       ↓
+Cryptographic hash
+       ↓
+Further analysis
+```
+
+Preserving context makes the artifact useful during incident scoping and detection development.
+
+## Step 1 — Locate a transfer
+
+For a benign HTTP training capture:
+
+```text
+http
+```
+
+Inspect requests and responses, then follow the relevant stream. Determine whether the capture contains enough packets for Wireshark to reassemble the object.
+
+## Step 2 — Export the object
+
+Use **File → Export Objects → HTTP** for supported HTTP objects. Wireshark's User's Guide documents Export Objects and identifies the packet, hostname, content type, size, and filename information available in the dialog when supported by the dissector.
+
+Save the object into an isolated training-analysis directory.
+
+<Warning>
+Do not execute an unknown exported artifact. Suspicious files should be handled according to your organization's malware-analysis and evidence procedures.
+</Warning>
+
+## Step 3 — Calculate SHA-256
+
+Linux/macOS:
+
+```bash
+sha256sum artifact.bin
+```
+
+PowerShell:
+
+```powershell
+Get-FileHash .\artifact.bin -Algorithm SHA256
+```
+
+Record:
+
+```text
+Filename:
+Size:
+SHA-256:
+Source IP:
+Destination IP:
+Protocol:
+Request URI or transfer context:
+First relevant packet:
+Timestamp:
+```
+
+## Step 4 — Validate provenance
+
+Return to the PCAP and confirm the exported object corresponds to the intended stream or transaction. Record packet/stream identifiers so another analyst can reproduce the extraction.
+
+## Step 5 — Connect to IOC normalization
+
+A SHA-256 can become one field in an IOC record, but the surrounding evidence remains important.
+
+Example:
+
+```json
+{
+  "value": "<sha256>",
+  "type": "sha256",
+  "source": "authorized network-forensics lab",
+  "context": "exported from HTTP transaction in lab PCAP"
+}
+```
+
+If you completed the Python IOC Normalizer project, use the hash as a safe bridge between the two curricula.
+
+## Step 6 — YARA bridge
+
+YARA is useful when you want to classify file content using rules rather than relying only on an exact hash. Exact hashes identify exact content; YARA can express structural or textual characteristics.
+
+For this course, use YARA only against benign or approved training files. Do not invent a YARA rule from a hash alone; first understand what stable file characteristics you intend to detect.
+
+## Step 7 — Suricata/Snort bridge
+
+Network IDS rules observe network-visible characteristics. YARA evaluates file/content data presented to it. A Suricata/Snort signature and a YARA rule therefore solve different problems even when both relate to the same artifact.
+
+A useful workflow is:
+
+```text
+PCAP observation
+   ↓
+network characteristics → Suricata/Snort detection candidate
+   ↓
+exported file characteristics → YARA detection candidate
+   ↓
+SHA-256 → exact-match IOC
+```
+
+## Troubleshooting
+
+| Problem | Check |
+| --- | --- |
+| Object not listed | Protocol/dissector may not support export, transfer may be encrypted, or packets may be missing. |
+| Exported file appears incomplete | Verify stream completeness and capture boundaries. |
+| Hash differs from another copy | Confirm bytes, transfer encoding/reassembly, and whether the files are actually identical. |
+| Filename looks suspicious | Filename alone is weak evidence; preserve and analyze content/context safely. |
+
+## Validation
+
+Your final evidence record should let another analyst answer:
+
+- where did the object come from?
+- when was it transferred?
+- which systems were involved?
+- how was it exported?
+- what is its SHA-256?
+- what does the evidence establish?
+- what remains unknown?
+
+## Advanced extension
+
+Compare an exact-hash IOC, a YARA rule, and a network signature for the same benign training artifact. Document the visibility, strengths, and failure modes of each detection method.
+
+## References
+
+<CardGroup cols={2}>
+  <Card title="Wireshark User's Guide" icon="book" href="https://www.wireshark.org/docs/wsug_html/">
+    Official guidance for following streams and exporting supported objects.
+  </Card>
+  <Card title="YARA Documentation" icon="file-code" href="https://yara.readthedocs.io/">
+    Maintained YARA syntax and usage documentation.
+  </Card>
+</CardGroup>
+
+<CardGroup cols={2}>
+  <Card title="Previous: Beaconing Analysis" icon="arrow-left" href="/training/network-forensics/beaconing-analysis" />
+  <Card title="Next: Security Onion + Arkime" icon="arrow-right" href="/training/network-forensics/security-onion-arkime" />
+</CardGroup>
