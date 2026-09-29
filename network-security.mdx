@@ -1,7 +1,7 @@
 ---
 title: "Network Security: Training Resources and Career Path"
 sidebarTitle: "Network Security"
-description: "Learn network security with curated training resources, certification paths, and hands-on labs covering firewalls, IDS/IPS, VPNs, and network forensics."
+description: "Learn network security with curated training resources, certification paths, and hands-on labs covering packet analysis, network forensics, detection telemetry, and defensive engineering."
 ---
 
 Network security forms the backbone of every cybersecurity discipline. Before you can defend an environment, you need to understand how traffic flows through it — how packets move between hosts, how protocols negotiate sessions, and how adversary and benign behavior appear in network telemetry. Mastering network security gives you a mental model that supports SOC analysis, threat hunting, incident response, detection engineering, cloud security, and offensive testing.
@@ -20,76 +20,62 @@ Network security forms the backbone of every cybersecurity discipline. Before yo
 ## Recommended learning order
 
 <Steps>
-  <Step title="Build networking foundations">
-    Learn addressing, routing, TCP/UDP, DNS, HTTP, and TLS before trying to interpret complex packet captures.
-  </Step>
-  <Step title="Learn packet analysis">
-    Use Wireshark to identify endpoints, protocols, TCP conversations, DNS activity, and application metadata.
-  </Step>
-  <Step title="Practice network forensics">
-    Move from individual packets to an investigation workflow: establish scope, reduce noise, reconstruct sessions, correlate evidence, and document findings.
-  </Step>
-  <Step title="Add detection telemetry">
-    Connect packet observations to Suricata/Snort alerts, Security Onion, Arkime sessions, and indexed SIEM data.
-  </Step>
-  <Step title="Engineer and validate detections">
-    Use packet evidence to understand what a network detection can reliably observe, then test rules and queries against authorized lab traffic.
-  </Step>
+  <Step title="Build networking foundations">Learn addressing, routing, TCP/UDP, DNS, HTTP, and TLS before trying to interpret complex packet captures.</Step>
+  <Step title="Learn packet analysis">Use Wireshark to identify endpoints, protocols, TCP conversations, DNS activity, and application metadata.</Step>
+  <Step title="Practice network forensics">Move from individual packets to investigations: DNS, web sessions, periodic communications, transferred artifacts, and evidence timelines.</Step>
+  <Step title="Correlate defensive telemetry">Connect packet observations to Suricata/Snort alerts, Security Onion, Arkime sessions, and indexed SIEM data.</Step>
+  <Step title="Engineer and validate detections">Use packet evidence to understand what a network detection can reliably observe, then test rules and analytics against authorized lab traffic.</Step>
 </Steps>
 
-## Hands-on lab — Network forensics with Wireshark
+## Hands-on Network Forensics course
 
-<Card title="Network Forensics with Wireshark" href="/training/network-forensics/wireshark" icon="magnifying-glass">
-Follow a reproducible investigation from PCAP scoping through DNS/TCP analysis, stream reconstruction, artifact handling, TShark automation, and pivots from Security Onion, Arkime, and Suricata.
+<Card title="Network Forensics Learning Path" href="/training/network-forensics/index" icon="network-wired">
+Progress through seven applied labs from Wireshark foundations to a full Security Onion/Arkime-correlated capstone investigation.
 </Card>
 
-The lab is designed for beginner-to-intermediate practitioners and includes optional advanced exercises. It emphasizes the difference between factual packet observations and analytical interpretation.
+### Lab progression
+
+| Lab | Capability |
+| --- | --- |
+| 1. Packet Analysis Foundations | Scope PCAPs, filter traffic, inspect endpoints/conversations, and reconstruct streams. |
+| 2. DNS Investigation | Reconstruct name resolution and correlate DNS with subsequent network activity. |
+| 3. HTTP, TLS, and Web Traffic | Analyze plaintext transactions and encrypted-session metadata. |
+| 4. Beaconing Analysis | Characterize periodic communication and test competing explanations. |
+| 5. File and Artifact Analysis | Export authorized objects, hash them, preserve provenance, and bridge into IOC/YARA workflows. |
+| 6. Security Onion + Arkime | Pivot from alerts and sessions to full packet evidence and correlate Suricata telemetry. |
+| 7. Capstone | Conduct and report an end-to-end investigation with minimal guidance. |
 
 ## Top resources
 
 <CardGroup cols={2}>
-  <Card title="Wireshark Documentation" href="https://www.wireshark.org/docs/" icon="magnifying-glass">
-    Official Wireshark user documentation, command-line manuals, filter references, and release information.
-  </Card>
-  <Card title="Cisco Networking Academy" href="https://www.netacad.com/" icon="sitemap">
-    Networking fundamentals and Cisco-focused training with practical networking exercises.
-  </Card>
-  <Card title="Professor Messer Network+" href="https://www.professormesser.com/network-plus/" icon="network-wired">
-    Free Network+ training covering networking concepts useful before deeper packet analysis.
-  </Card>
-  <Card title="Security Onion Documentation" href="https://docs.securityonion.net/" icon="shield">
-    Official documentation for Security Onion workflows, including full packet capture and Wireshark integration.
-  </Card>
-  <Card title="Arkime" href="https://arkime.com/" icon="database">
-    Maintained full-packet-capture indexing and session-search platform useful for narrowing large network datasets before PCAP analysis.
-  </Card>
-  <Card title="Suricata Documentation" href="https://docs.suricata.io/" icon="shield-halved">
-    Official IDS/IPS documentation covering rules, protocol telemetry, EVE JSON, and PCAP processing.
-  </Card>
+  <Card title="Wireshark Documentation" href="https://www.wireshark.org/docs/" icon="magnifying-glass">Official Wireshark documentation, CLI manuals, and filter references.</Card>
+  <Card title="Security Onion Documentation" href="https://docs.securityonion.net/" icon="shield">Official integrated alert, hunt, packet capture, and Wireshark guidance.</Card>
+  <Card title="Arkime" href="https://arkime.com/" icon="database">Full-packet-capture indexing and session-search platform.</Card>
+  <Card title="Suricata Documentation" href="https://docs.suricata.io/" icon="shield-halved">IDS/IPS rules, protocol telemetry, EVE JSON, and PCAP processing.</Card>
 </CardGroup>
 
 ## Practice progression
 
-A useful progression is:
-
 ```text
-Read a protocol
-      ↓
-Capture it
-      ↓
-Filter it
-      ↓
-Reconstruct the conversation
-      ↓
-Explain the evidence
-      ↓
-Correlate it with IDS/SIEM telemetry
-      ↓
+Understand protocol behavior
+        ↓
+Capture or obtain authorized traffic
+        ↓
+Filter and scope
+        ↓
+Reconstruct conversations
+        ↓
+Explain packet evidence
+        ↓
+Correlate IDS/session/SIEM telemetry
+        ↓
+Test competing explanations
+        ↓
 Build or validate a detection
 ```
 
 <Tip>
-When learning Wireshark, capture traffic you deliberately generate in an authorized lab. Knowing what happened before you inspect the PCAP gives you immediate feedback about whether you interpreted the packets correctly.
+When learning packet analysis, begin with traffic you deliberately generated in an authorized lab. Knowing the expected behavior gives you immediate feedback about whether your interpretation is correct.
 </Tip>
 
 ## Certification path
@@ -97,23 +83,15 @@ When learning Wireshark, capture traffic you deliberately generate in an authori
 Certification is optional, but structured study can reinforce the same skills.
 
 <Steps>
-  <Step title="CompTIA Network+">
-    Useful if you need networking fundamentals, protocol behavior, troubleshooting, and infrastructure vocabulary.
-  </Step>
-  <Step title="CompTIA Security+">
-    Adds security architecture, threats, controls, and defensive concepts to networking foundations.
-  </Step>
-  <Step title="Cisco CCNA">
-    Provides deeper practical understanding of switching, routing, IP services, and enterprise network operation.
-  </Step>
-  <Step title="Defensive analysis specialization">
-    Continue into a blue-team, incident-response, threat-hunting, or network-forensics curriculum that requires hands-on packet and telemetry analysis rather than relying on certification alone.
-  </Step>
+  <Step title="CompTIA Network+">Useful if you need networking fundamentals, protocol behavior, troubleshooting, and infrastructure vocabulary.</Step>
+  <Step title="CompTIA Security+">Adds security architecture, threats, controls, and defensive concepts to networking foundations.</Step>
+  <Step title="Cisco CCNA">Provides deeper practical understanding of switching, routing, IP services, and enterprise network operation.</Step>
+  <Step title="Defensive analysis specialization">Continue into blue-team, incident-response, threat-hunting, or network-forensics training requiring hands-on packet and telemetry analysis.</Step>
 </Steps>
 
 ## Next steps
 
-After completing the Wireshark lab, practice the same investigative question across multiple evidence sources:
+After the Network Forensics course, practice the same investigative question across multiple evidence sources:
 
 ```text
 Wireshark → raw packets
