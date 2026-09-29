@@ -1,0 +1,169 @@
+---
+title: "Project 3: Detection Test Harness"
+description: "Test a simple detection predicate against suspicious and benign JSON fixtures, and produce CI-friendly results."
+---
+# Project 3: Detection Test Harness
+
+**Intent:** Test a simple detection predicate against suspicious and benign JSON fixtures, and produce CI-friendly results.
+
+**Result:** A working utility, synthetic fixture, expected output, and a verification check. The project is designed for authorized lab data and can be adapted after you inspect the real data/API contract.
+
+## Learning objectives
+
+1. Rule contract — The teaching schema has a field, operator, and value. Supported operators are equals, contains, and gte. It is not a complete Sigma or SIEM language.
+2. Fixture design — Positive and negative directories declare expected behavior. Use benign near-misses, not only empty events, to expose false positives.
+3. Evaluation — Capture expected result, actual match, matched field, and pass/fail for every sample. A missing field does not match.
+4. CI signal — The JSON report supports review, JUnit names failed cases, and exit code 1 blocks a regression. Deliberately change a negative fixture to confirm the failure path.
+
+## Prerequisites and setup
+
+Use Python 3.11 or newer. Create an empty project folder. Run python -m venv .venv and activate it. Use python3 where your system requires it. Save the code below with the exact filename shown. Keep generated output, secrets, and local caches outside version control.
+
+Read through the lessons before copying the full listing. After each lesson, find the corresponding function and explain its input, output, and failure behavior.
+
+## Component lessons
+
+### Lesson 1: Rule contract
+
+The teaching schema has a field, operator, and value. Supported operators are equals, contains, and gte. It is not a complete Sigma or SIEM language.
+
+### Lesson 2: Fixture design
+
+Positive and negative directories declare expected behavior. Use benign near-misses, not only empty events, to expose false positives.
+
+### Lesson 3: Evaluation
+
+Capture expected result, actual match, matched field, and pass/fail for every sample. A missing field does not match.
+
+### Lesson 4: CI signal
+
+The JSON report supports review, JUnit names failed cases, and exit code 1 blocks a regression. Deliberately change a negative fixture to confirm the failure path.
+
+## Step 1: Build the program
+
+Save this complete reference implementation as `detection_harness.py`. The standard-library projects need no third-party package. The advanced validator and API service declare their dependencies below.
+
+```python
+"""Test a simple local detection predicate against positive and negative fixtures."""
+import argparse
+import json
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+
+def matches(event, rule):
+    value = event.get(rule["field"])
+    target = rule["value"]
+    if rule["operator"] == "equals":
+        return value == target
+    if rule["operator"] == "contains":
+        return isinstance(value, str) and str(target).lower() in value.lower()
+    if rule["operator"] == "gte":
+        return isinstance(value, (int, float)) and value >= target
+    raise ValueError("Unsupported operator")
+
+
+def run_cases(rule, fixture_dir):
+    cases = []
+    for label, expected in (("positive", True), ("negative", False)):
+        for path in sorted((fixture_dir / label).glob("*.json")):
+            event = json.loads(path.read_text())
+            actual = matches(event, rule)
+            cases.append({"name": str(path.relative_to(fixture_dir)),
+                          "expected": expected, "actual": actual,
+                          "matched_fields": [rule["field"]] if actual else [],
+                          "passed": actual == expected})
+    if not cases:
+        raise ValueError("No positive/negative JSON fixtures found")
+    return cases
+
+
+def write_junit(cases, path):
+    suite = ET.Element("testsuite", name="detection", tests=str(len(cases)),
+                       failures=str(sum(not c["passed"] for c in cases)))
+    for case in cases:
+        test = ET.SubElement(suite, "testcase", name=case["name"])
+        if not case["passed"]:
+            ET.SubElement(test, "failure", message="Detection mismatch").text = json.dumps(case)
+    ET.ElementTree(suite).write(path, encoding="unicode", xml_declaration=True)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("rule", type=Path)
+    parser.add_argument("fixtures", type=Path)
+    parser.add_argument("--report", type=Path, default=Path("detection-report.json"))
+    parser.add_argument("--junit", type=Path, default=Path("detection-junit.xml"))
+    args = parser.parse_args()
+    rule = json.loads(args.rule.read_text())
+    if not {"field", "operator", "value"} <= rule.keys():
+        parser.error("rule needs field, operator, and value")
+    cases = run_cases(rule, args.fixtures)
+    args.report.write_text(json.dumps(cases, indent=2) + "\n")
+    write_junit(cases, args.junit)
+    print(f"{sum(c['passed'] for c in cases)}/{len(cases)} cases passed")
+    raise SystemExit(0 if all(c["passed"] for c in cases) else 1)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Step 2: Create synthetic input
+
+Run these commands in the same directory as the program. Documentation IP addresses and invented domains are used so the walkthrough does not expose live case data.
+
+```bash
+mkdir -p tests/data/positive tests/data/negative
+printf '%s
+' '{"field":"event_type","operator":"equals","value":"authentication_failure"}' > rule.json
+printf '%s
+' '{"event_type":"authentication_failure"}' > tests/data/positive/fail.json
+printf '%s
+' '{"event_type":"authentication_success"}' > tests/data/negative/success.json
+```
+
+## Step 3: Run and inspect
+
+```bash
+python detection_harness.py rule.json tests/data
+```
+
+**Expected:** The command prints 2/2 cases passed, exits 0, and writes JSON and JUnit reports.
+
+## Step 4: Verify independently
+
+Run the following check after the sample command. Inspect the generated artifact yourself as well; an assertion only checks the stated properties.
+
+```bash
+python - <<'PY'
+import json,xml.etree.ElementTree as ET
+rows=json.load(open("detection-report.json"))
+assert len(rows)==2 and all(x["passed"] for x in rows)
+assert ET.parse("detection-junit.xml").getroot().attrib["failures"]=="0"
+print("passed")
+PY
+```
+
+## Step 5: Test the failure path
+
+Change the negative sample to authentication_failure. The command must exit 1 and name the mismatch. Restore it and rerun.
+
+## Completion checklist
+
+- [ ] The example runs from a clean directory.
+- [ ] The verification command passes, or an intentionally critical health status has the expected exit code.
+- [ ] A failure or negative sample behaves as documented.
+- [ ] A README explains the problem, input contract, output schema, commands, limitations, and data-handling rules.
+- [ ] Another analyst can repeat the workflow without reading your mind.
+
+## Next iteration
+
+Add nested field access, null handling, and automated CI execution.
+
+## References
+
+- [unittest](https://docs.python.org/3/library/unittest.html)
+- [ElementTree](https://docs.python.org/3/library/xml.etree.elementtree.html)
+
+<Card title="Return to Intermediate" icon="arrow-left" href="/training/python/intermediate">Continue the project path.</Card>

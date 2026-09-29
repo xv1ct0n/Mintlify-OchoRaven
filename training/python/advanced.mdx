@@ -27,83 +27,25 @@ icon: "rocket"
 - Retry/backoff strategies
 - Metrics and operational health
 
-## Project 1 — Concurrent Enrichment Pipeline
+## Guided projects
 
-**Intent:** Scale the intermediate IOC client while learning controlled concurrency and operational safeguards.
+Work through the projects in order. Each guide includes learning objectives, a complete reference implementation, synthetic inputs, run commands, expected output, an independent check, failure tests, and an extension.
 
-**Capability:** Process a queue of indicators against multiple authorized enrichment sources without overwhelming services.
+<Card title="Project 1: Concurrent Enrichment Pipeline" icon="code" href="/training/python/advanced-projects/concurrent-enrichment-pipeline">
+  Add bounded workers, rate limits, retry, cache, and operational metrics.
+</Card>
 
-### Requirements
+<Card title="Project 2: Detection-as-Code Validator" icon="code" href="/training/python/advanced-projects/detection-as-code-validator">
+  Check YAML rule metadata, IDs, ATT&CK syntax, and fixtures as a quality gate.
+</Card>
 
-- asynchronous or bounded concurrent workers;
-- per-provider rate limiting;
-- retry with exponential backoff;
-- request timeouts;
-- caching;
-- structured logs;
-- deterministic normalized output;
-- unit and integration tests;
-- summary metrics for successes, failures, cache hits, and processing time.
+<Card title="Project 3: Telemetry Pipeline Health Monitor" icon="code" href="/training/python/advanced-projects/telemetry-pipeline-health-monitor">
+  Assess freshness, volume, fields, and duplicates with explicit status thresholds.
+</Card>
 
-<Info>
-Faster is not automatically better. A mature enrichment tool protects upstream services and produces predictable results under failure conditions.
-</Info>
-
-## Project 2 — Detection-as-Code Validator
-
-**Intent:** Treat detection content as version-controlled software artifacts.
-
-**Capability:** Validate a repository of detection rules before changes are merged.
-
-Possible validation stages:
-
-1. Parse rule files.
-2. Validate required metadata.
-3. Check naming conventions and identifiers.
-4. Validate ATT&CK technique references where used.
-5. Execute tests against positive and negative event fixtures.
-6. Identify duplicate or conflicting rule IDs.
-7. Produce human-readable and CI-friendly reports.
-8. Exit non-zero when required quality gates fail.
-
-**Stretch goal:** Add GitHub Actions so pull requests automatically execute validation.
-
-## Project 3 — Telemetry Pipeline Health Monitor
-
-**Intent:** Detection engineering depends on reliable data. Learn to measure whether expected telemetry is arriving and usable.
-
-**Capability:** Query authorized telemetry sources and identify potential collection problems.
-
-Monitor items such as:
-
-- expected data sources;
-- last event timestamp;
-- event volume relative to a configured baseline;
-- missing critical fields;
-- parsing failures;
-- unexpected schema changes;
-- duplicate events.
-
-Output a health report with `healthy`, `warning`, and `critical` states based on explicit configuration rather than hidden assumptions.
-
-## Project 4 — Security Automation Service
-
-**Intent:** Convert a local script into a small team-consumable service.
-
-**Capability:** Expose one of your earlier tools through a documented API using a framework such as FastAPI.
-
-Required engineering features:
-
-- validated request/response models;
-- authentication appropriate for the lab environment;
-- health endpoint;
-- structured logs;
-- request IDs;
-- safe error messages;
-- tests;
-- Dockerfile;
-- configuration through environment variables;
-- API documentation.
+<Card title="Project 4: Security Automation Service" icon="code" href="/training/python/advanced-projects/security-automation-service">
+  Expose a restricted lab API with validation, authentication, health, tests, and a container.
+</Card>
 
 ## Advanced checkpoint
 

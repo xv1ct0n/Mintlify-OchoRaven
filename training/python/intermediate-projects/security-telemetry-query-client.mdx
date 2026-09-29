@@ -1,0 +1,182 @@
+---
+title: "Project 2: Security Telemetry Query Client"
+description: "Run a bounded hunt query against an authorized Elasticsearch or OpenSearch lab and export an event summary."
+---
+# Project 2: Security Telemetry Query Client
+
+**Intent:** Run a bounded hunt query against an authorized Elasticsearch or OpenSearch lab and export an event summary.
+
+**Result:** A working utility, synthetic fixture, expected output, and a verification check. The project is designed for authorized lab data and can be adapted after you inspect the real data/API contract.
+
+## Learning objectives
+
+1. Bound the query — Build an exact term query with an explicit result size and ascending timestamp sort. Use a keyword field when the mapping needs exact matching. Limited hits do not constitute a full export.
+2. Separate transport — The HTTP function owns HTTPS, credentials, CA trust, timeout, and request encoding. Extraction and summarization work on plain dictionaries, so they can be checked offline.
+3. Keep provenance — Preserve hit IDs, the generated query, event types, and first and last timestamps. Put the password in an environment variable and use a trusted internal CA file when needed.
+4. Validate offline first — A saved search response is a repeatable fixture. Inspect the report before querying a live lab and compare the field mapping to the backend.
+
+## Prerequisites and setup
+
+Use Python 3.11 or newer. Create an empty project folder. Run python -m venv .venv and activate it. Use python3 where your system requires it. Save the code below with the exact filename shown. Keep generated output, secrets, and local caches outside version control.
+
+Read through the lessons before copying the full listing. After each lesson, find the corresponding function and explain its input, output, and failure behavior.
+
+## Component lessons
+
+### Lesson 1: Bound the query
+
+Build an exact term query with an explicit result size and ascending timestamp sort. Use a keyword field when the mapping needs exact matching. Limited hits do not constitute a full export.
+
+### Lesson 2: Separate transport
+
+The HTTP function owns HTTPS, credentials, CA trust, timeout, and request encoding. Extraction and summarization work on plain dictionaries, so they can be checked offline.
+
+### Lesson 3: Keep provenance
+
+Preserve hit IDs, the generated query, event types, and first and last timestamps. Put the password in an environment variable and use a trusted internal CA file when needed.
+
+### Lesson 4: Validate offline first
+
+A saved search response is a repeatable fixture. Inspect the report before querying a live lab and compare the field mapping to the backend.
+
+## Step 1: Build the program
+
+Save this complete reference implementation as `telemetry_query.py`. The standard-library projects need no third-party package. The advanced validator and API service declare their dependencies below.
+
+```python
+"""Query a lab Elasticsearch/OpenSearch endpoint or an offline response fixture."""
+import argparse
+import base64
+import json
+import os
+import ssl
+import urllib.error
+import urllib.parse
+import urllib.request
+from collections import Counter
+from pathlib import Path
+
+
+def build_query(field, value, limit):
+    return {"size": limit, "sort": [{"@timestamp": "asc"}],
+            "query": {"term": {field: value}}}
+
+
+def run_query(endpoint, index, query, username, password, timeout, ca_file):
+    if not endpoint.startswith("https://"):
+        raise ValueError("endpoint must use HTTPS")
+    url = endpoint.rstrip("/") + "/" + urllib.parse.quote(index, safe="-_") + "/_search"
+    auth = base64.b64encode(f"{username}:{password}".encode()).decode()
+    request = urllib.request.Request(url, data=json.dumps(query).encode(),
+        headers={"Content-Type": "application/json", "Authorization": "Basic " + auth}, method="POST")
+    try:
+        with urllib.request.urlopen(request, timeout=timeout,
+                                    context=ssl.create_default_context(cafile=ca_file)) as response:
+            return json.load(response)
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"Search returned HTTP {exc.code}") from exc
+    except (urllib.error.URLError, TimeoutError) as exc:
+        raise RuntimeError("Search endpoint unavailable or TLS validation failed") from exc
+
+
+def extract_events(response):
+    hits = response.get("hits", {}).get("hits", [])
+    if not isinstance(hits, list):
+        raise ValueError("Invalid search response: hits.hits must be a list")
+    return [{"id": hit.get("_id"), **hit.get("_source", {})} for hit in hits]
+
+
+def summarize_events(events):
+    return {"count": len(events), "by_event_type": dict(Counter(
+        str(event.get("event_type", "unknown")) for event in events)),
+        "first_timestamp": min((e.get("@timestamp", "") for e in events), default=""),
+        "last_timestamp": max((e.get("@timestamp", "") for e in events), default="")}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--fixture", type=Path, help="saved _search JSON response")
+    parser.add_argument("--endpoint", default=os.getenv("SEARCH_URL"))
+    parser.add_argument("--index", default="lab-events")
+    parser.add_argument("--field", default="event_type.keyword")
+    parser.add_argument("--value", default="authentication_failure")
+    parser.add_argument("--limit", type=int, default=100)
+    parser.add_argument("--timeout", type=float, default=10)
+    parser.add_argument("--ca-file", help="CA bundle for internal TLS certificates")
+    parser.add_argument("--output", type=Path, default=Path("query-results.json"))
+    args = parser.parse_args()
+    if not 1 <= args.limit <= 1000:
+        parser.error("--limit must be between 1 and 1000")
+    query = build_query(args.field, args.value, args.limit)
+    if args.fixture:
+        response = json.loads(args.fixture.read_text())
+    else:
+        user, password = os.getenv("SEARCH_USER"), os.getenv("SEARCH_PASSWORD")
+        if not args.endpoint or not user or not password:
+            parser.error("set SEARCH_URL, SEARCH_USER, SEARCH_PASSWORD or use --fixture")
+        response = run_query(args.endpoint, args.index, query, user, password,
+                             args.timeout, args.ca_file)
+    events = extract_events(response)
+    output = {"query": query, "summary": summarize_events(events), "events": events}
+    args.output.write_text(json.dumps(output, indent=2) + "\n")
+    print(json.dumps(output["summary"], indent=2))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Step 2: Create synthetic input
+
+Run these commands in the same directory as the program. Documentation IP addresses and invented domains are used so the walkthrough does not expose live case data.
+
+```bash
+cat > response.json <<'JSON'
+{"hits":{"hits":[{"_id":"1","_source":{"@timestamp":"2026-01-01T12:00:00Z","event_type":"authentication_failure"}},{"_id":"2","_source":{"@timestamp":"2026-01-01T12:03:00Z","event_type":"authentication_failure"}}]}}
+JSON
+```
+
+## Step 3: Run and inspect
+
+```bash
+python telemetry_query.py --fixture response.json --output query-results.json
+```
+
+**Expected:** The summary reports two failures and the output retains the query and both event IDs.
+
+## Step 4: Verify independently
+
+Run the following check after the sample command. Inspect the generated artifact yourself as well; an assertion only checks the stated properties.
+
+```bash
+python - <<'PY'
+import json
+out=json.load(open("query-results.json"))
+assert out["summary"]["count"]==2
+assert [x["id"] for x in out["events"]]==["1","2"]
+print("passed")
+PY
+```
+
+## Step 5: Test the failure path
+
+Try a missing field. For live 401 check access, for certificate failure supply --ca-file, and for zero hits inspect index, mapping, time coverage, and permissions.
+
+## Completion checklist
+
+- [ ] The example runs from a clean directory.
+- [ ] The verification command passes, or an intentionally critical health status has the expected exit code.
+- [ ] A failure or negative sample behaves as documented.
+- [ ] A README explains the problem, input contract, output schema, commands, limitations, and data-handling rules.
+- [ ] Another analyst can repeat the workflow without reading your mind.
+
+## Next iteration
+
+Add a time range, search_after pagination, and redaction before sharing exports.
+
+## References
+
+- [Elasticsearch search](https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-search)
+- [OpenSearch search](https://docs.opensearch.org/latest/api-reference/search-apis/search/)
+
+<Card title="Return to Intermediate" icon="arrow-left" href="/training/python/intermediate">Continue the project path.</Card>
